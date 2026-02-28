@@ -15,11 +15,11 @@ RUN npm ci --workspace=packages/shared --workspace=packages/backend
 # Build shared + backend
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=deps /app/packages/backend/node_modules ./packages/backend/node_modules
 COPY packages/shared ./packages/shared
 COPY packages/backend ./packages/backend
 COPY tsconfig.base.json ./
+COPY package.json ./
 
 RUN npm run build -w packages/shared
 RUN npx prisma generate --schema=packages/backend/prisma/schema.prisma
