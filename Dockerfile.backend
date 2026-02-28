@@ -3,6 +3,7 @@
 # ─────────────────────────────────────────────────
 
 FROM node:20-alpine AS base
+RUN apk add --no-cache openssl
 WORKDIR /app
 
 # Install dependencies
@@ -39,6 +40,9 @@ COPY --from=builder /app/node_modules ./node_modules
 # Overlay shared package dist (symlinks don't survive Docker COPY)
 COPY --from=builder /app/packages/shared/dist ./node_modules/@gametracker/shared/dist
 COPY --from=builder /app/packages/shared/package.json ./node_modules/@gametracker/shared/
+
+# Fix permissions for prisma engines (needed for migrate deploy as non-root)
+RUN chown -R appuser:nodejs /app/node_modules/.prisma /app/node_modules/@prisma
 
 USER appuser
 
