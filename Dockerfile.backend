@@ -34,13 +34,11 @@ RUN adduser --system --uid 1001 appuser
 
 COPY --from=builder /app/packages/backend/dist ./dist
 COPY --from=builder /app/packages/backend/prisma ./prisma
-COPY --from=builder /app/packages/backend/node_modules ./node_modules
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+# Copy root node_modules (npm workspaces hoists all deps here)
+COPY --from=builder /app/node_modules ./node_modules
+# Overlay shared package dist (symlinks don't survive Docker COPY)
 COPY --from=builder /app/packages/shared/dist ./node_modules/@gametracker/shared/dist
 COPY --from=builder /app/packages/shared/package.json ./node_modules/@gametracker/shared/
-# Prisma CLI needed for railway migrate deploy
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 
 USER appuser
 
