@@ -8,6 +8,7 @@ import { config } from './config';
 import { logger } from './lib/logger';
 import prisma from './lib/prisma';
 import { getRedis } from './lib/redis';
+import { runStartupSeed } from './jobs/startup-seed';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import gameRoutes from './routes/game.routes';
@@ -103,6 +104,25 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/games', gameRoutes);
 app.use('/api/v1/libraries', libraryRoutes);
 app.use('/api/v1/recommendations', recommendationRoutes);
+
+// ── Admin: manual seed trigger ───────────────
+app.post('/api/v1/admin/seed', async (_req, res) => {
+  try {
+    logger.info('Manual seed triggered via /api/v1/admin/seed');
+    await runStartupSeed();
+    const prismaModule = await import('./lib/prisma');
+    const counts = {
+      games: await prismaModule.default.game.count(),
+      platforms: await prismaModule.default.platform.count(),
+      genres: await prismaModule.default.genre.count(),
+      tags: await prismaModule.default.tag.count(),
+    };
+    res.json({ success: true, message: 'Seed completed', data: counts });
+  } catch (error) {
+    logger.error({ err: error }, 'Manual seed failed');
+    res.status(500).json({ success: false, error: 'Seed failed' });
+  }
+});
 
 // ── 404 handler ──────────────────────────────
 app.use((_req, res) => {
