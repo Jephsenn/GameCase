@@ -258,11 +258,14 @@ export async function importGamesFromRawg(
   return result;
 }
 
-// ── Search / Query (local DB with caching) ─────
+// ── Search / Query (local DB + RAWG enrichment) ─────
 
 /**
- * Search local game database with optional filtering & pagination.
- * Results are cached in Redis.
+ * Search game database with optional filtering & pagination.
+ * When a text query is provided, results are enriched from RAWG to ensure
+ * comprehensive coverage — local DB results appear first, then RAWG fills
+ * remaining slots. When browsing without a query (or with filters only),
+ * serves from local DB only. Results are cached in Redis.
  */
 export async function searchGames(params: GameSearchParams) {
   const page = params.page ?? PAGINATION.DEFAULT_PAGE;
@@ -286,8 +289,12 @@ export async function searchGames(params: GameSearchParams) {
 
   // Build where clause
   const where: Record<string, unknown> = {};
+  const hasTextQuery = !!(params.query && params.query.length >= SEARCH.MIN_QUERY_LENGTH);
+  const hasFilters = (params.genres && params.genres.length > 0) ||
+                     (params.platforms && params.platforms.length > 0) ||
+                     (params.tags && params.tags.length > 0);
 
-  if (params.query && params.query.length >= SEARCH.MIN_QUERY_LENGTH) {
+  if (hasTextQuery) {
     where.title = { contains: params.query, mode: 'insensitive' };
   }
 
@@ -345,6 +352,10 @@ export async function searchGames(params: GameSearchParams) {
         coverImage: true,
         backgroundImage: true,
         rating: true,
+        ratingCount: true,
+        metacritic: true,
+        playtime: true,
+        esrbRating: true,
         releaseDate: true,
         platforms: { select: { platform: { select: { id: true, name: true, slug: true } } } },
         genres: { select: { genre: { select: { id: true, name: true, slug: true } } } },
@@ -361,20 +372,78 @@ export async function searchGames(params: GameSearchParams) {
     coverImage: g.coverImage,
     backgroundImage: g.backgroundImage,
     rating: g.rating,
+    ratingCount: g.ratingCount,
+    metacritic: g.metacritic,
+    playtime: g.playtime,
+    esrbRating: g.esrbRating,
     releaseDate: g.releaseDate?.toISOString() ?? null,
     platforms: g.platforms.map((p) => p.platform),
     genres: g.genres.map((ge) => ge.genre),
   }));
 
-  const result = { items: flatItems, total };
+  // ── RAWG enrichment ──
+  // When a user searches by text (no local-only filters), always query RAWG
+  // to supplement results. Local matches appear first, then RAWG fills the
+  // rest of the page. This makes the experience seamless — users don't need
+  // to know whether a game is in the local DB or not.
+  let mergedItems = flatItems;
+  let mergedTotal = total;
+
+  if (hasTextQuery && !hasFilters) {
+    try {
+      const rawgResponse = await searchRawgGames({
+        search: params.query!,
+        page,
+        page_size: pageSize,
+      });
+
+      const localSlugs = new Set(flatItems.map((g) => g.slug));
+      const rawgExtras = rawgResponse.results
+        .filter((g) => !localSlugs.has(g.slug))
+        .map((g) => ({
+          id: `rawg-${g.id}`,
+          slug: g.slug,
+          title: g.name,
+          coverImage: g.background_image,
+          backgroundImage: g.background_image,
+          rating: g.rating || null,
+          ratingCount: g.ratings_count || null,
+          metacritic: g.metacritic ?? null,
+          playtime: g.playtime || null,
+          esrbRating: g.esrb_rating?.name ?? null,
+          releaseDate: g.released,
+          platforms: g.platforms?.map((p) => ({
+            id: String(p.platform.id),
+            name: p.platform.name,
+            slug: p.platform.slug,
+          })) ?? [],
+          genres: g.genres?.map((ge) => ({
+            id: String(ge.id),
+            name: ge.name,
+            slug: ge.slug,
+          })) ?? [],
+        }));
+
+      // Local results first, then RAWG extras to fill the page
+      const slotsAvailable = pageSize - flatItems.length;
+      mergedItems = [...flatItems, ...rawgExtras.slice(0, Math.max(0, slotsAvailable))];
+      // Cap the total to avoid absurd page counts (RAWG can return 50K+)
+      const MAX_SEARCH_TOTAL = 200;
+      mergedTotal = Math.min(Math.max(total, rawgResponse.count), MAX_SEARCH_TOTAL);
+    } catch {
+      // RAWG enrichment is best-effort — if it fails, just return local results
+    }
+  }
+
+  const result = { items: mergedItems, total: mergedTotal };
   await cacheSet(cacheKey, result, CACHE_TTL.GAME_SEARCH);
 
   return {
     ...result,
     page,
     pageSize,
-    totalPages: Math.ceil(total / pageSize),
-    hasNext: page * pageSize < total,
+    totalPages: Math.ceil(mergedTotal / pageSize),
+    hasNext: page * pageSize < mergedTotal,
     hasPrevious: page > 1,
   };
 }
@@ -483,8 +552,13 @@ export async function discoverGames(query: string, page = 1, pageSize = 20) {
     rawgId: g.id,
     slug: g.slug,
     title: g.name,
+    coverImage: g.background_image,
     backgroundImage: g.background_image,
-    rating: g.rating,
+    rating: g.rating || null,
+    ratingCount: g.ratings_count || null,
+    metacritic: g.metacritic ?? null,
+    playtime: g.playtime || null,
+    esrbRating: g.esrb_rating?.name ?? null,
     releaseDate: g.released,
     platforms: g.platforms?.map((p) => ({
       id: String(p.platform.id),

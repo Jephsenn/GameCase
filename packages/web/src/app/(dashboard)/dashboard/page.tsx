@@ -111,9 +111,9 @@ export default function DashboardPage() {
                   className="group block rounded-2xl border border-neutral-800 bg-neutral-900/50 overflow-hidden transition-all hover:border-neutral-700 hover:shadow-lg hover:shadow-violet-500/5"
                 >
                   <div className="relative aspect-[3/4] bg-neutral-800">
-                    {rec.game.coverImage ? (
+                    {(rec.game.coverImage || rec.game.backgroundImage) ? (
                       <Image
-                        src={rec.game.coverImage}
+                        src={(rec.game.coverImage || rec.game.backgroundImage)!}
                         alt={rec.game.title}
                         fill
                         className="object-cover transition-transform duration-300 group-hover:scale-105"

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { authApi, type AuthResponseData } from './api';
+import { authApi, registerTokenRefreshCallback, type AuthResponseData } from './api';
 
 type User = AuthResponseData['user'];
 
@@ -37,6 +37,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Keep the api-layer interceptor in sync with the latest saveToken
+  useEffect(() => {
+    registerTokenRefreshCallback((newToken) => saveToken(newToken));
+  }, [saveToken]);
+
   // Try to restore session on mount
   useEffect(() => {
     const init = async () => {
@@ -46,7 +51,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (storedToken) {
           const data = await authApi.me(storedToken);
           setUser(data.user);
-          setAccessToken(storedToken);
+          // Read the latest token from localStorage — silentRefresh() may have
+          // rotated the access token during the me() call if it was expired.
+          const latestToken = localStorage.getItem(TOKEN_KEY) || storedToken;
+          setAccessToken(latestToken);
           setIsLoading(false);
           return;
         }

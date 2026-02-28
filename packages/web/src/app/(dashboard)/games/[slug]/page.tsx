@@ -20,7 +20,7 @@ import { GameDetailSkeleton } from '@/components/ui/skeleton';
 
 export default function GameDetailPage() {
   const { slug } = useParams<{ slug: string }>();
-  const { accessToken } = useAuth();
+  const { accessToken, isLoading: authLoading } = useAuth();
   const toast = useToast();
 
   const [game, setGame] = useState<GameDetail | null>(null);
@@ -32,27 +32,39 @@ export default function GameDetailPage() {
 
   const load = useCallback(async () => {
     if (!slug) return;
+
+    // Fetch the game detail (public — no token required)
+    let g: GameDetail;
     try {
-      const g = await gameApi.getDetail(slug, accessToken || undefined);
+      g = await gameApi.getDetail(slug, accessToken || undefined);
       setGame(g);
-      if (accessToken) {
+    } catch {
+      toast.error('Failed to load game details');
+      setLoading(false);
+      return;
+    }
+
+    // Fetch library data separately — failures are non-critical
+    if (accessToken) {
+      try {
         const [libs, status] = await Promise.all([
           libraryApi.getAll(accessToken),
           libraryApi.getGameStatus(accessToken, g.id),
         ]);
         setLibraries(libs);
         setGameStatus(status);
+      } catch {
+        // Library data is supplemental — silently ignore errors
       }
-    } catch {
-      toast.error('Failed to load game details');
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   }, [slug, accessToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    load();
-  }, [load]);
+    // Wait until auth has finished initialising before loading
+    if (!authLoading) load();
+  }, [load, authLoading]);
 
   async function handleAddToLibrary(libraryId: string) {
     if (!accessToken || !game) return;
@@ -108,15 +120,16 @@ export default function GameDetailPage() {
     <PageTransition className="space-y-8">
       {/* Hero section */}
       <FadeIn>
-        <div className="relative rounded-2xl overflow-hidden border border-neutral-800">
+        <div className="relative rounded-2xl border border-neutral-800">
         {game.backgroundImage && (
-          <div className="absolute inset-0">
+          <div className="absolute inset-0 overflow-hidden rounded-2xl">
             <Image
               src={game.backgroundImage}
               alt=""
               fill
               className="object-cover opacity-30"
               priority
+              sizes="100vw"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/80 to-transparent" />
           </div>
@@ -125,13 +138,14 @@ export default function GameDetailPage() {
           {/* Cover */}
           <div className="shrink-0 w-40 sm:w-48">
             <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-neutral-800">
-              {game.coverImage ? (
+              {(game.coverImage || game.backgroundImage) ? (
                 <Image
-                  src={game.coverImage}
+                  src={(game.coverImage || game.backgroundImage)!}
                   alt={game.title}
                   fill
                   className="object-cover"
                   priority
+                  sizes="(max-width: 640px) 160px, 192px"
                 />
               ) : (
                 <div className="flex items-center justify-center h-full text-neutral-600">
@@ -234,7 +248,7 @@ export default function GameDetailPage() {
                     + Add to Library
                   </Button>
                   {showAdd && (
-                    <div className="absolute top-full mt-2 left-0 z-10 w-56 rounded-xl border border-neutral-700 bg-neutral-900 shadow-xl overflow-hidden">
+                    <div className="absolute top-full mt-2 left-0 z-50 w-56 rounded-xl border border-neutral-700 bg-neutral-900 shadow-xl overflow-hidden">
                       {availableLibraries.map((lib) => (
                         <button
                           key={lib.id}

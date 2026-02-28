@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
@@ -15,11 +15,25 @@ export default function BrowseGamesPage() {
   const [results, setResults] = useState<PaginatedData<GameListItem> | null>(null);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [page, setPage] = useState(1);
   const [genre, setGenre] = useState('');
   const [platform, setPlatform] = useState('');
   const [genres, setGenres] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [platforms, setPlatforms] = useState<{ id: string; name: string; slug: string }[]>([]);
+  // Unique key that changes on each search to force StaggerContainer remount
+  const [searchKey, setSearchKey] = useState(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce query input — avoids hammering the API on every keystroke
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedQuery(query);
+      setPage(1);
+    }, 400);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query]);
 
   // Load filter options
   useEffect(() => {
@@ -32,17 +46,18 @@ export default function BrowseGamesPage() {
     setLoading(true);
     try {
       const params: Record<string, string> = { page: String(page) };
-      if (query.trim()) params.q = query.trim();
-      if (genre) params.genre = genre;
-      if (platform) params.platform = platform;
+      if (debouncedQuery.trim()) params.q = debouncedQuery.trim();
+      if (genre) params.genres = genre;
+      if (platform) params.platforms = platform;
       const data = await gameApi.search(accessToken, params);
       setResults(data);
+      setSearchKey((k) => k + 1);
     } catch {
       /* swallow */
     } finally {
       setLoading(false);
     }
-  }, [accessToken, query, page, genre, platform]);
+  }, [accessToken, debouncedQuery, page, genre, platform]);
 
   useEffect(() => {
     search();
@@ -50,8 +65,10 @@ export default function BrowseGamesPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Immediately apply the current query without waiting for debounce
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setDebouncedQuery(query);
     setPage(1);
-    search();
   }
 
   return (
@@ -104,10 +121,12 @@ export default function BrowseGamesPage() {
         <GameGridSkeleton />
       ) : results && results.items.length > 0 ? (
         <>
-          <p className="text-sm text-neutral-500">
-            {results.total} result{results.total !== 1 ? 's' : ''} found
-          </p>
-          <StaggerContainer className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {(debouncedQuery.trim() || genre || platform) && (
+            <p className="text-sm text-neutral-500">
+              {results.total} result{results.total !== 1 ? 's' : ''} found
+            </p>
+          )}
+          <StaggerContainer key={searchKey} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {results.items.map((game) => (
               <StaggerItem key={game.id}>
                 <Link
@@ -115,9 +134,9 @@ export default function BrowseGamesPage() {
                   className="group block rounded-2xl border border-neutral-800 bg-neutral-900/50 overflow-hidden transition-all hover:border-neutral-700 hover:shadow-lg hover:shadow-violet-500/5"
                 >
                   <div className="relative aspect-[3/4] bg-neutral-800 overflow-hidden">
-                    {game.coverImage ? (
+                    {(game.coverImage || game.backgroundImage) ? (
                       <Image
-                        src={game.coverImage}
+                        src={(game.coverImage || game.backgroundImage)!}
                         alt={game.title}
                         fill
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -138,11 +157,27 @@ export default function BrowseGamesPage() {
                         {game.genres.map((g) => g.name).join(', ')}
                       </p>
                     )}
-                    {game.releaseDate && (
-                      <p className="text-xs text-neutral-600">
-                        {new Date(game.releaseDate).getFullYear()}
-                      </p>
-                    )}
+                    <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                      {game.releaseDate && (
+                        <span className="text-xs text-neutral-600">
+                          {new Date(game.releaseDate).getFullYear()}
+                        </span>
+                      )}
+                      {game.metacritic != null && (
+                        <span className={`text-xs font-semibold px-1 rounded ${
+                          game.metacritic >= 75 ? 'text-green-400' :
+                          game.metacritic >= 50 ? 'text-yellow-400' : 'text-red-400'
+                        }`}>
+                          MC {game.metacritic}
+                        </span>
+                      )}
+                      {game.rating != null && game.metacritic == null && (
+                        <span className="text-xs text-yellow-400">★ {game.rating.toFixed(1)}</span>
+                      )}
+                      {game.playtime != null && game.playtime > 0 && (
+                        <span className="text-xs text-neutral-600">{game.playtime}h</span>
+                      )}
+                    </div>
                   </div>
                 </Link>
               </StaggerItem>

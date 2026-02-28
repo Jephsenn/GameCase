@@ -1,4 +1,5 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+const TOKEN_KEY = 'gt_access_token';
 
 interface FetchOptions extends RequestInit {
   token?: string;
@@ -15,23 +16,70 @@ class ApiError extends Error {
   }
 }
 
+// ── Token refresh interception ────────────────────
+// Allows the auth context to register a callback so the request layer can
+// notify React state when a silent token refresh succeeds mid-session.
+type TokenRefreshedCallback = (newToken: string) => void;
+let onTokenRefreshed: TokenRefreshedCallback | null = null;
+
+export function registerTokenRefreshCallback(cb: TokenRefreshedCallback) {
+  onTokenRefreshed = cb;
+}
+
+// Serialise concurrent refresh attempts into a single in-flight promise so
+// multiple 401s don't all try to hit /auth/refresh simultaneously.
+let refreshPromise: Promise<string | null> | null = null;
+
+async function silentRefresh(): Promise<string | null> {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) return null;
+      const json = await res.json();
+      const newToken: string = json?.data?.accessToken;
+      if (!newToken) return null;
+      localStorage.setItem(TOKEN_KEY, newToken);
+      onTokenRefreshed?.(newToken);
+      return newToken;
+    } catch {
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+  return refreshPromise;
+}
+
 async function request<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
   const { token, headers: customHeaders, ...fetchOptions } = options;
 
-  const headers: Record<string, string> = {
+  const buildHeaders = (t?: string): Record<string, string> => ({
     'Content-Type': 'application/json',
     ...((customHeaders as Record<string, string>) || {}),
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...fetchOptions,
-    headers,
-    credentials: 'include', // Send cookies (refresh token)
+    ...(t ? { Authorization: `Bearer ${t}` } : {}),
   });
+
+  const doFetch = (t?: string) =>
+    fetch(`${API_BASE}${endpoint}`, {
+      ...fetchOptions,
+      headers: buildHeaders(t),
+      credentials: 'include',
+    });
+
+  let response = await doFetch(token);
+
+  // On 401 with a token, attempt a silent refresh and retry once
+  if (response.status === 401 && token) {
+    const newToken = await silentRefresh();
+    if (newToken) {
+      response = await doFetch(newToken);
+    }
+  }
 
   const data = await response.json();
 
@@ -144,6 +192,10 @@ export interface GameListItem {
   coverImage: string | null;
   backgroundImage: string | null;
   rating: number | null;
+  ratingCount: number | null;
+  metacritic: number | null;
+  playtime: number | null;
+  esrbRating: string | null;
   releaseDate: string | null;
   platforms: { id: string; name: string; slug: string }[];
   genres: { id: string; name: string; slug: string }[];
@@ -152,11 +204,7 @@ export interface GameListItem {
 export interface GameDetail extends GameListItem {
   rawgId: number | null;
   description: string | null;
-  ratingCount: number | null;
-  metacritic: number | null;
   websiteUrl: string | null;
-  esrbRating: string | null;
-  playtime: number | null;
   tags: { id: string; name: string; slug: string }[];
   screenshots: string[];
   createdAt: string;

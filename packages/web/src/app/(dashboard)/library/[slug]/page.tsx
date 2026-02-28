@@ -21,7 +21,7 @@ import { GameGridSkeleton } from '@/components/ui/skeleton';
 export default function LibraryDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
-  const { accessToken } = useAuth();
+  const { accessToken, isLoading: authLoading } = useAuth();
   const toast = useToast();
 
   const [library, setLibrary] = useState<LibraryData | null>(null);
@@ -56,8 +56,8 @@ export default function LibraryDetailPage() {
   }, [accessToken, slug, page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!authLoading) load();
+  }, [load, authLoading]);
 
   async function handleRemove(itemId: string) {
     if (!accessToken) return;
@@ -269,9 +269,9 @@ export default function LibraryDetailPage() {
               <div className="group rounded-2xl border border-neutral-800 bg-neutral-900/50 overflow-hidden transition-all hover:border-neutral-700 hover:shadow-lg hover:shadow-violet-500/5">
                 <Link href={`/games/${item.game.slug}`} className="block">
                   <div className="relative aspect-[3/4] bg-neutral-800 overflow-hidden">
-                    {item.game.coverImage ? (
+                    {(item.game.coverImage || item.game.backgroundImage) ? (
                       <Image
-                        src={item.game.coverImage}
+                        src={(item.game.coverImage || item.game.backgroundImage)!}
                         alt={item.game.title}
                         fill
                         className="object-cover transition-transform duration-300 group-hover:scale-105"

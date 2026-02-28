@@ -26,7 +26,7 @@ const REASON_BADGES: Record<string, { label: string; color: string }> = {
 };
 
 export default function RecommendationsPage() {
-  const { accessToken } = useAuth();
+  const { accessToken, isLoading: authLoading } = useAuth();
   const toast = useToast();
   const [data, setData] = useState<PaginatedData<RecommendationItem> | null>(null);
   const [libraries, setLibraries] = useState<LibraryData[]>([]);
@@ -54,8 +54,8 @@ export default function RecommendationsPage() {
   }, [accessToken, page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!authLoading) load();
+  }, [load, authLoading]);
 
   async function handleRefresh() {
     if (!accessToken) return;
@@ -152,14 +152,14 @@ export default function RecommendationsPage() {
           <StaggerContainer className="space-y-4">
             {data.items.map((rec) => (
               <StaggerItem key={rec.id}>
-                <div className="group rounded-2xl border border-neutral-800 bg-neutral-900/50 overflow-hidden transition-all hover:border-neutral-700 hover:shadow-lg hover:shadow-violet-500/5">
+                <div className="group rounded-2xl border border-neutral-800 bg-neutral-900/50 transition-all hover:border-neutral-700 hover:shadow-lg hover:shadow-violet-500/5">
                   <div className="flex flex-col sm:flex-row">
                     {/* Game cover */}
                     <Link href={`/games/${rec.game.slug}`} className="shrink-0 sm:w-48">
-                      <div className="relative aspect-[3/4] bg-neutral-800 overflow-hidden">
-                        {rec.game.coverImage ? (
+                      <div className="relative aspect-[3/4] bg-neutral-800 overflow-hidden rounded-t-2xl sm:rounded-t-none sm:rounded-l-2xl">
+                        {(rec.game.coverImage || rec.game.backgroundImage) ? (
                           <Image
-                            src={rec.game.coverImage}
+                            src={(rec.game.coverImage || rec.game.backgroundImage)!}
                             alt={rec.game.title}
                             fill
                             className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -240,7 +240,7 @@ export default function RecommendationsPage() {
                             + Add to Library
                           </Button>
                           {showAddFor === rec.id && (
-                            <div className="absolute top-full mt-2 left-0 z-10 w-56 rounded-xl border border-neutral-700 bg-neutral-900 shadow-xl overflow-hidden">
+                            <div className="absolute top-full mt-2 left-0 z-50 w-56 rounded-xl border border-neutral-700 bg-neutral-900 shadow-xl overflow-hidden">
                               {libraries.map((lib) => (
                                 <button
                                   key={lib.id}

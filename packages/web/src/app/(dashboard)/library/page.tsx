@@ -12,7 +12,7 @@ import { LibraryCardSkeleton } from '@/components/ui/skeleton';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export default function LibraryPage() {
-  const { accessToken } = useAuth();
+  const { accessToken, isLoading: authLoading } = useAuth();
   const toast = useToast();
   const [libraries, setLibraries] = useState<LibraryData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,8 +34,8 @@ export default function LibraryPage() {
   }, [accessToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!authLoading) load();
+  }, [load, authLoading]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
