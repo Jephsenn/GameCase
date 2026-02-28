@@ -1,0 +1,49 @@
+# ─────────────────────────────────────────────────
+# GameTracker Web — Production Dockerfile
+# ─────────────────────────────────────────────────
+
+FROM node:20-alpine AS base
+WORKDIR /app
+
+# Install dependencies
+FROM base AS deps
+COPY package.json package-lock.json ./
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/web/package.json ./packages/web/
+RUN npm ci --workspace=packages/shared --workspace=packages/web
+
+# Build shared + web
+FROM base AS builder
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules 2>/dev/null || true
+COPY --from=deps /app/packages/web/node_modules ./packages/web/node_modules
+COPY packages/shared ./packages/shared
+COPY packages/web ./packages/web
+COPY tsconfig.base.json ./
+COPY package.json ./
+
+RUN npm run build -w packages/shared
+
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+RUN npm run build -w packages/web
+
+# Production image — standalone output
+FROM base AS runner
+ENV NODE_ENV=production
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/packages/web/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/packages/web/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/packages/web/.next/static ./packages/web/.next/static
+
+USER nextjs
+
+EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["node", "packages/web/server.js"]

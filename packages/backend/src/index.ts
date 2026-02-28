@@ -1,0 +1,35 @@
+import app from './app';
+import { config } from './config';
+import { logger } from './lib/logger';
+import { getRedis, disconnectRedis } from './lib/redis';
+import { startSyncJobs } from './jobs/sync-games';
+
+async function main() {
+  try {
+    // Connect Redis (lazy, non-blocking if unavailable)
+    try {
+      await getRedis().connect();
+    } catch {
+      logger.warn('Redis not available — caching disabled');
+    }
+
+    // Start background sync jobs
+    startSyncJobs();
+
+    app.listen(config.port, () => {
+      logger.info({ port: config.port, env: config.nodeEnv }, 'GameTracker API started');
+    });
+  } catch (error) {
+    logger.fatal({ err: error }, 'Failed to start server');
+    process.exit(1);
+  }
+}
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  logger.info('Shutting down…');
+  await disconnectRedis();
+  process.exit(0);
+});
+
+main();

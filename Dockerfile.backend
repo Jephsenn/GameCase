@@ -1,0 +1,52 @@
+# ─────────────────────────────────────────────────
+# GameTracker Backend — Production Dockerfile
+# ─────────────────────────────────────────────────
+
+FROM node:20-alpine AS base
+WORKDIR /app
+
+# Install dependencies
+FROM base AS deps
+COPY package.json package-lock.json ./
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/backend/package.json ./packages/backend/
+RUN npm ci --workspace=packages/shared --workspace=packages/backend
+
+# Build shared + backend
+FROM base AS builder
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=deps /app/packages/backend/node_modules ./packages/backend/node_modules
+COPY packages/shared ./packages/shared
+COPY packages/backend ./packages/backend
+COPY tsconfig.base.json ./
+
+RUN npm run build -w packages/shared
+RUN npx prisma generate --schema=packages/backend/prisma/schema.prisma
+RUN npm run build -w packages/backend
+
+# Production image
+FROM base AS runner
+ENV NODE_ENV=production
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 appuser
+
+COPY --from=builder /app/packages/backend/dist ./dist
+COPY --from=builder /app/packages/backend/prisma ./prisma
+COPY --from=builder /app/packages/backend/node_modules ./node_modules
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/packages/shared/dist ./node_modules/@gametracker/shared/dist
+COPY --from=builder /app/packages/shared/package.json ./node_modules/@gametracker/shared/
+# Prisma CLI needed for railway migrate deploy
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+
+USER appuser
+
+EXPOSE 4000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:4000/health || exit 1
+
+CMD ["node", "dist/index.js"]

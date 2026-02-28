@@ -1,0 +1,221 @@
+// ─────────────────────────────────────────────────────────
+// GameTracker — Prisma Schema
+// ─────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── User ─────────────────────────────────────────────────
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  username        String    @unique
+  displayName     String?   @map("display_name")
+  passwordHash    String?   @map("password_hash")
+  avatarUrl       String?   @map("avatar_url")
+  bio             String?
+  oauthProvider   String?   @map("oauth_provider") // 'google' | 'apple'
+  oauthProviderId String?   @map("oauth_provider_id")
+  refreshToken    String?   @map("refresh_token")
+  onboardingDone  Boolean   @default(false) @map("onboarding_done")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  libraries       Library[]
+  recommendations Recommendation[]
+
+  @@unique([oauthProvider, oauthProviderId])
+  @@index([email])
+  @@index([username])
+  @@map("users")
+}
+
+// ── Game ─────────────────────────────────────────────────
+
+model Game {
+  id              String   @id @default(cuid())
+  rawgId          Int?     @unique @map("rawg_id")
+  slug            String   @unique
+  title           String
+  description     String?  @db.Text
+  releaseDate     DateTime? @map("release_date")
+  rating          Float?
+  ratingCount     Int?     @map("rating_count")
+  metacritic      Int?
+  backgroundImage String?  @map("background_image")
+  coverImage      String?  @map("cover_image")
+  websiteUrl      String?  @map("website_url")
+  esrbRating      String?  @map("esrb_rating")
+  playtime        Int?     // average playtime in hours
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  genres          GameGenre[]
+  platforms       GamePlatform[]
+  tags            GameTag[]
+  screenshots     GameScreenshot[]
+  libraryItems    LibraryItem[]
+  recommendations Recommendation[]
+
+  @@index([title])
+  @@index([slug])
+  @@index([rawgId])
+  @@index([releaseDate])
+  @@index([rating])
+  @@map("games")
+}
+
+// ── Platform ─────────────────────────────────────────────
+
+model Platform {
+  id    String @id @default(cuid())
+  name  String @unique
+  slug  String @unique
+
+  games GamePlatform[]
+
+  @@map("platforms")
+}
+
+model GamePlatform {
+  gameId     String @map("game_id")
+  platformId String @map("platform_id")
+
+  game     Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  platform Platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, platformId])
+  @@map("game_platforms")
+}
+
+// ── Genre ────────────────────────────────────────────────
+
+model Genre {
+  id    String @id @default(cuid())
+  name  String @unique
+  slug  String @unique
+
+  games GameGenre[]
+
+  @@map("genres")
+}
+
+model GameGenre {
+  gameId  String @map("game_id")
+  genreId String @map("genre_id")
+
+  game  Game  @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  genre Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, genreId])
+  @@map("game_genres")
+}
+
+// ── Tag ──────────────────────────────────────────────────
+
+model Tag {
+  id    String @id @default(cuid())
+  name  String @unique
+  slug  String @unique
+
+  games GameTag[]
+
+  @@map("tags")
+}
+
+model GameTag {
+  gameId String @map("game_id")
+  tagId  String @map("tag_id")
+
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, tagId])
+  @@map("game_tags")
+}
+
+// ── Game Screenshots ─────────────────────────────────────
+
+model GameScreenshot {
+  id     String @id @default(cuid())
+  gameId String @map("game_id")
+  url    String
+  width  Int?
+  height Int?
+
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([gameId])
+  @@map("game_screenshots")
+}
+
+// ── Library ──────────────────────────────────────────────
+
+model Library {
+  id          String  @id @default(cuid())
+  userId      String  @map("user_id")
+  name        String
+  slug        String
+  description String?
+  visibility  String  @default("public") // 'public' | 'private'
+  isDefault   Boolean @default(false) @map("is_default")
+  defaultType String? @map("default_type") // 'played' | 'want_to_play' | 'backlog' | 'currently_playing'
+  sortOrder   Int     @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items LibraryItem[]
+
+  @@unique([userId, slug])
+  @@index([userId])
+  @@map("libraries")
+}
+
+// ── Library Item ─────────────────────────────────────────
+
+model LibraryItem {
+  id         String   @id @default(cuid())
+  libraryId  String   @map("library_id")
+  gameId     String   @map("game_id")
+  notes      String?  @db.Text
+  userRating Float?   @map("user_rating")
+  sortOrder  Int      @default(0) @map("sort_order")
+  addedAt    DateTime @default(now()) @map("added_at")
+
+  library Library @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+  game    Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([libraryId, gameId])
+  @@index([libraryId])
+  @@index([gameId])
+  @@map("library_items")
+}
+
+// ── Recommendation ───────────────────────────────────────
+
+model Recommendation {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  gameId     String   @map("game_id")
+  score      Float
+  reasons    String[] // ['genre', 'tag', 'collaborative', 'popular', 'new_release']
+  reasonText String?  @map("reason_text")
+  createdAt  DateTime @default(now()) @map("created_at")
+  expiresAt  DateTime @map("expires_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gameId])
+  @@index([userId])
+  @@index([userId, score(sort: Desc)])
+  @@map("recommendations")
+}

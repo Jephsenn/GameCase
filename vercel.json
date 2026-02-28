@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build:shared && npm run build -w packages/web",
+  "outputDirectory": "packages/web/.next",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  }
+}
