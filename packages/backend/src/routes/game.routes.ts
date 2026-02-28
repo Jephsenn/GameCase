@@ -11,6 +11,7 @@ import {
   importGamesFromRawg,
   ingestFullGame,
 } from '../services/game.service';
+import { cacheInvalidatePattern } from '../lib/redis';
 import { PAGINATION, SEARCH } from '@gametracker/shared';
 
 const router = Router();
@@ -159,6 +160,18 @@ router.post('/ingest/:rawgId', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Game ingest error:', error);
     res.status(500).json({ success: false, error: 'Failed to ingest game' });
+  }
+});
+
+// ── POST /api/v1/games/flush-cache — Admin: clear game search caches ──
+
+router.post('/flush-cache', async (_req: Request, res: Response) => {
+  try {
+    await cacheInvalidatePattern('games:*');
+    res.json({ success: true, message: 'Game caches flushed' });
+  } catch (error) {
+    console.error('Cache flush error:', error);
+    res.status(500).json({ success: false, error: 'Failed to flush cache' });
   }
 });
 
