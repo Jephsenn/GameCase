@@ -155,8 +155,8 @@ export default function RecommendationsPage() {
                 <div className="group rounded-2xl border border-neutral-800 bg-neutral-900/50 overflow-hidden transition-all hover:border-neutral-700 hover:shadow-lg hover:shadow-violet-500/5">
                   <div className="flex flex-col sm:flex-row">
                     {/* Game cover */}
-                    <Link href={`/games/${rec.game.slug}`} className="shrink-0 sm:w-36">
-                      <div className="relative aspect-[3/4] sm:h-full bg-neutral-800 overflow-hidden">
+                    <Link href={`/games/${rec.game.slug}`} className="shrink-0 sm:w-48">
+                      <div className="relative aspect-[3/4] bg-neutral-800 overflow-hidden">
                         {rec.game.coverImage ? (
                           <Image
                             src={rec.game.coverImage}

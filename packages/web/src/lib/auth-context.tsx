@@ -12,6 +12,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, username: string, password: string, displayName?: string) => Promise<void>;
+  oauthLogin: (token: string, provider: 'google' | 'apple') => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User) => void;
   refreshUser: () => Promise<void>;
@@ -84,6 +85,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [saveToken],
   );
 
+  const oauthLoginFn = useCallback(
+    async (token: string, provider: 'google' | 'apple') => {
+      const data = await authApi.oauth({ token, provider });
+      setUser(data.user);
+      saveToken(data.accessToken);
+    },
+    [saveToken],
+  );
+
   const logoutFn = useCallback(async () => {
     try {
       if (accessToken) {
@@ -124,6 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         login: loginFn,
         signup: signupFn,
+        oauthLogin: oauthLoginFn,
         logout: logoutFn,
         setUser,
         refreshUser,

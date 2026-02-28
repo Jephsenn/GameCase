@@ -3,6 +3,7 @@ import { config } from './config';
 import { logger } from './lib/logger';
 import { getRedis, disconnectRedis } from './lib/redis';
 import { startSyncJobs } from './jobs/sync-games';
+import { runStartupSeed } from './jobs/startup-seed';
 
 async function main() {
   try {
@@ -12,6 +13,9 @@ async function main() {
     } catch {
       logger.warn('Redis not available — caching disabled');
     }
+
+    // Seed reference data + initial games if DB is empty
+    await runStartupSeed();
 
     // Start background sync jobs
     startSyncJobs();
