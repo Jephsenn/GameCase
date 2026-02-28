@@ -9,6 +9,7 @@ import {
   type RawgGamesParams,
 } from '../lib/rawg';
 import { cacheGet, cacheSet, cacheInvalidatePattern } from '../lib/redis';
+import { logger } from '../lib/logger';
 import { CACHE_TTL, PAGINATION, SEARCH } from '@gametracker/shared';
 import type { GameSearchParams } from '@gametracker/shared';
 
@@ -430,8 +431,9 @@ export async function searchGames(params: GameSearchParams) {
       // Cap the total to avoid absurd page counts (RAWG can return 50K+)
       const MAX_SEARCH_TOTAL = 200;
       mergedTotal = Math.min(Math.max(total, rawgResponse.count), MAX_SEARCH_TOTAL);
-    } catch {
+    } catch (err) {
       // RAWG enrichment is best-effort — if it fails, just return local results
+      logger.warn({ err, query: params.query }, 'RAWG enrichment failed for search query');
     }
   }
 

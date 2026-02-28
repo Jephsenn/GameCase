@@ -14,6 +14,13 @@ async function main() {
       logger.warn('Redis not available — caching disabled');
     }
 
+    // Log RAWG API key status
+    if (!config.rawgApiKey) {
+      logger.warn('RAWG_API_KEY is not set — game search will only return local DB results');
+    } else {
+      logger.info('RAWG_API_KEY is configured');
+    }
+
     // Seed reference data + initial games if DB is empty
     await runStartupSeed();
 
