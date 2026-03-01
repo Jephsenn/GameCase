@@ -8,6 +8,14 @@ import { libraryApi, recommendationApi, type LibraryData, type RecommendationIte
 import { PageTransition, FadeIn, StaggerContainer, StaggerItem } from '@/components/ui/animations';
 import { StatCardSkeleton } from '@/components/ui/skeleton';
 
+const REASON_BADGES: Record<string, { label: string; color: string }> = {
+  genre: { label: 'Genre Match', color: 'bg-violet-500/20 text-violet-300' },
+  tag: { label: 'Similar Tags', color: 'bg-blue-500/20 text-blue-300' },
+  popular: { label: 'Popular', color: 'bg-green-500/20 text-green-300' },
+  new_release: { label: 'New Release', color: 'bg-orange-500/20 text-orange-300' },
+  collaborative: { label: 'Players Like You', color: 'bg-fuchsia-500/20 text-fuchsia-300' },
+};
+
 const STAT_COLORS: Record<string, { gradient: string; glow: string; accent: string }> = {
   played: { gradient: 'from-green-500/20 to-green-500/5', glow: 'hover:shadow-green-500/10', accent: 'text-green-400' },
   currently_playing: { gradient: 'from-blue-500/20 to-blue-500/5', glow: 'hover:shadow-blue-500/10', accent: 'text-blue-400' },
@@ -134,9 +142,14 @@ export default function DashboardPage() {
                     <p className="text-xs font-medium line-clamp-1 group-hover:text-white transition-colors">
                       {rec.game.title}
                     </p>
-                    <p className="text-[10px] text-neutral-500 mt-0.5">
-                      {Math.round(rec.score * 100)}% match
-                    </p>
+                    {rec.reasons.length > 0 && (() => {
+                      const badge = REASON_BADGES[rec.reasons[0]] || { label: rec.reasons[0], color: 'bg-neutral-800 text-neutral-400' };
+                      return (
+                        <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full mt-1 ${badge.color}`}>
+                          {badge.label}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </Link>
               </StaggerItem>

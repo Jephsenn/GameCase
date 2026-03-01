@@ -30,6 +30,7 @@ model User {
 
   libraries       Library[]
   recommendations Recommendation[]
+  dismissedRecommendations DismissedRecommendation[]
   sentFriendRequests     Friendship[] @relation("FriendshipRequester")
   receivedFriendRequests Friendship[] @relation("FriendshipRecipient")
   activityFeedItems      ActivityFeedItem[]
@@ -66,6 +67,7 @@ model Game {
   screenshots     GameScreenshot[]
   libraryItems    LibraryItem[]
   recommendations Recommendation[]
+  dismissedRecommendations DismissedRecommendation[]
   activityFeedItems ActivityFeedItem[]
 
   @@index([title])
@@ -224,6 +226,22 @@ model Recommendation {
   @@index([userId])
   @@index([userId, score(sort: Desc)])
   @@map("recommendations")
+}
+
+// ── Dismissed Recommendation ─────────────────────────────
+
+model DismissedRecommendation {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  gameId    String   @map("game_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gameId])
+  @@index([userId])
+  @@map("dismissed_recommendations")
 }
 
 // ── Friendship ───────────────────────────────────────

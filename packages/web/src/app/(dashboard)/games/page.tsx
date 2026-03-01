@@ -4,11 +4,19 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
-import { gameApi, type GameListItem, type PaginatedData } from '@/lib/api';
+import { gameApi, recommendationApi, type GameListItem, type RecommendationItem, type PaginatedData } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageTransition, FadeIn, StaggerContainer, StaggerItem } from '@/components/ui/animations';
 import { GameGridSkeleton } from '@/components/ui/skeleton';
+
+const REASON_BADGES: Record<string, { label: string; color: string }> = {
+  genre: { label: 'Genre Match', color: 'bg-violet-500/20 text-violet-300' },
+  tag: { label: 'Similar Tags', color: 'bg-blue-500/20 text-blue-300' },
+  popular: { label: 'Popular', color: 'bg-green-500/20 text-green-300' },
+  new_release: { label: 'New Release', color: 'bg-orange-500/20 text-orange-300' },
+  collaborative: { label: 'Players Like You', color: 'bg-fuchsia-500/20 text-fuchsia-300' },
+};
 
 export default function BrowseGamesPage() {
   const { accessToken } = useAuth();
@@ -25,6 +33,11 @@ export default function BrowseGamesPage() {
   const [searchKey, setSearchKey] = useState(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Personalized recommendations shown when no search/filter is active
+  const [recs, setRecs] = useState<RecommendationItem[]>([]);
+  const [recsLoading, setRecsLoading] = useState(true);
+  const isDefaultView = !debouncedQuery.trim() && !genre && !platform && page === 1;
+
   // Debounce query input — avoids hammering the API on every keystroke
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -35,11 +48,20 @@ export default function BrowseGamesPage() {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [query]);
 
-  // Load filter options
+  // Load filter options + personalized recommendations
   useEffect(() => {
     gameApi.getGenres().then(setGenres).catch(() => {});
     gameApi.getPlatforms().then(setPlatforms).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    setRecsLoading(true);
+    recommendationApi.getAll(accessToken, 1, 10)
+      .then((d) => setRecs(d.items))
+      .catch(() => {})
+      .finally(() => setRecsLoading(false));
+  }, [accessToken]);
 
   const search = useCallback(async () => {
     if (!accessToken) return;
@@ -117,6 +139,67 @@ export default function BrowseGamesPage() {
           </Button>
         </form>
       </FadeIn>
+
+      {/* Recommended For You — shown when no search/filter active */}
+      {isDefaultView && !recsLoading && recs.length > 0 && (
+        <FadeIn delay={0.15}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold">Recommended For You</h2>
+            <Link href="/recommendations" className="text-sm text-violet-400 hover:underline">
+              View all →
+            </Link>
+          </div>
+          <StaggerContainer className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4" delay={0.05}>
+            {recs.map((rec) => (
+              <StaggerItem key={rec.id}>
+                <Link
+                  href={`/games/${rec.game.slug}`}
+                  className="group block rounded-2xl border border-neutral-800/80 bg-neutral-900/50 overflow-hidden transition-all duration-300 hover:border-violet-500/30 hover:shadow-xl hover:shadow-violet-500/10 hover:-translate-y-0.5"
+                >
+                  <div className="relative aspect-[3/4] bg-neutral-800 overflow-hidden">
+                    {(rec.game.coverImage || rec.game.backgroundImage) ? (
+                      <Image
+                        src={(rec.game.coverImage || rec.game.backgroundImage)!}
+                        alt={rec.game.title}
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-neutral-600 text-sm">
+                        No Image
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3 space-y-1">
+                    <p className="font-medium text-sm line-clamp-1 group-hover:text-white transition-colors">
+                      {rec.game.title}
+                    </p>
+                    {rec.game.genres.length > 0 && (
+                      <p className="text-xs text-neutral-500 line-clamp-1">
+                        {rec.game.genres.map((g) => g.name).join(', ')}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-1 pt-0.5">
+                      {rec.reasons.slice(0, 2).map((reason) => {
+                        const badge = REASON_BADGES[reason] || { label: reason, color: 'bg-neutral-800 text-neutral-400' };
+                        return (
+                          <span key={reason} className={`text-[10px] px-1.5 py-0.5 rounded-full ${badge.color}`}>
+                            {badge.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </Link>
+              </StaggerItem>
+            ))}
+          </StaggerContainer>
+          <div className="mt-6 mb-2">
+            <h2 className="text-lg font-bold">All Games</h2>
+          </div>
+        </FadeIn>
+      )}
 
       {/* Results */}
       {loading ? (

@@ -2,6 +2,7 @@ import prisma from '../lib/prisma';
 import { cacheDel, cacheGet, cacheSet } from '../lib/redis';
 import { CACHE_TTL, PAGINATION, LIBRARY } from '@gametracker/shared';
 import { slugify } from '@gametracker/shared';
+import { generateMoreRecommendations } from './recommendation.service';
 
 // ──────────────────────────────────────────────
 // Library Service — CRUD for libraries & items
@@ -444,6 +445,9 @@ export async function addGameToLibrary(
     });
   } catch { /* non-critical */ }
 
+  // Trigger background recommendation regeneration
+  generateMoreRecommendations(userId).catch(() => {});
+
   return {
     id: item.id,
     libraryId,
@@ -565,6 +569,9 @@ export async function removeFromLibrary(userId: string, itemId: string) {
 
   await prisma.libraryItem.delete({ where: { id: itemId } });
   await cacheDel(`user:${userId}:libraries`);
+
+  // Trigger background recommendation regeneration
+  generateMoreRecommendations(userId).catch(() => {});
 }
 
 // ── Move game between libraries ───────────────

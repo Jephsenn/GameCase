@@ -357,12 +357,15 @@ export interface RecommendationItem {
   score: number;
   reasons: string[];
   reasonText: string;
-  game: GameListItem;
+  game: GameListItem & {
+    ratingCount?: number | null;
+    metacritic?: number | null;
+  };
 }
 
 export const recommendationApi = {
   getAll: (token: string, page = 1, pageSize = 20) =>
-    request<PaginatedData<RecommendationItem>>(
+    request<PaginatedData<RecommendationItem> & { latestGeneratedAt: string | null }>(
       `/recommendations?page=${page}&pageSize=${pageSize}`,
       { token },
     ),
@@ -370,6 +373,17 @@ export const recommendationApi = {
   refresh: (token: string) =>
     request<{ count: number; message: string }>('/recommendations/refresh', {
       method: 'POST',
+      token,
+    }),
+
+  generate: (token: string) =>
+    request<{ count: number; message: string }>('/recommendations/generate', {
+      method: 'POST',
+      token,
+    }),
+
+  getStatus: (token: string) =>
+    request<{ total: number; generating: boolean }>('/recommendations/status', {
       token,
     }),
 
