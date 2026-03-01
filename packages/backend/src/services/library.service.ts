@@ -168,6 +168,96 @@ export async function getLibraryBySlug(
   };
 }
 
+// ── Get public library by username + slug ──────
+
+export async function getPublicLibraryBySlug(
+  username: string,
+  slug: string,
+  page: number = 1,
+  pageSize: number = PAGINATION.DEFAULT_PAGE_SIZE,
+) {
+  const user = await prisma.user.findUnique({
+    where: { username: username.toLowerCase() },
+    select: { id: true },
+  });
+
+  if (!user) throw new LibraryError('User not found', 404);
+
+  const library = await prisma.library.findUnique({
+    where: { userId_slug: { userId: user.id, slug } },
+    select: { ...librarySelect(), userId: true, visibility: true },
+  });
+
+  if (!library) throw new LibraryError('Library not found', 404);
+  if (library.visibility !== 'public') throw new LibraryError('Library not found', 404);
+
+  const skip = (page - 1) * pageSize;
+
+  const [items, total] = await Promise.all([
+    prisma.libraryItem.findMany({
+      where: { libraryId: library.id },
+      orderBy: { addedAt: 'desc' },
+      skip,
+      take: pageSize,
+      select: {
+        id: true,
+        notes: true,
+        userRating: true,
+        sortOrder: true,
+        addedAt: true,
+        game: {
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            coverImage: true,
+            backgroundImage: true,
+            rating: true,
+            releaseDate: true,
+            platforms: { select: { platform: { select: { id: true, name: true, slug: true } } } },
+            genres: { select: { genre: { select: { id: true, name: true, slug: true } } } },
+          },
+        },
+      },
+    }),
+    prisma.libraryItem.count({ where: { libraryId: library.id } }),
+  ]);
+
+  const flatItems = items.map((item) => ({
+    id: item.id,
+    libraryId: library.id,
+    gameId: item.game.id,
+    notes: item.notes,
+    userRating: item.userRating,
+    sortOrder: item.sortOrder,
+    addedAt: item.addedAt.toISOString(),
+    game: {
+      id: item.game.id,
+      slug: item.game.slug,
+      title: item.game.title,
+      coverImage: item.game.coverImage,
+      backgroundImage: item.game.backgroundImage,
+      rating: item.game.rating,
+      releaseDate: item.game.releaseDate?.toISOString() ?? null,
+      platforms: item.game.platforms.map((p) => p.platform),
+      genres: item.game.genres.map((g) => g.genre),
+    },
+  }));
+
+  return {
+    library: { ...formatLibrary(library), userId: library.userId },
+    items: {
+      items: flatItems,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+      hasNext: page * pageSize < total,
+      hasPrevious: page > 1,
+    },
+  };
+}
+
 // ── Create custom library ─────────────────────
 
 export async function createLibrary(

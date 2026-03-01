@@ -172,6 +172,11 @@ export const userApi = {
   getPublicLibraries: (username: string) =>
     request<{ id: string; name: string; slug: string; itemCount: number }[]>(`/users/${username}/libraries`),
 
+  getPublicLibraryBySlug: (username: string, slug: string, page = 1, pageSize = 20) =>
+    request<{ library: LibraryData; items: PaginatedData<LibraryItemData> }>(
+      `/users/${encodeURIComponent(username)}/libraries/${encodeURIComponent(slug)}?page=${page}&pageSize=${pageSize}`,
+    ),
+
   getOnboardingGenres: () =>
     request<{ genres: GenreData[] }>('/users/onboarding/genres'),
 

@@ -10,6 +10,7 @@ import {
   completeOnboarding,
   getAllGenres,
 } from '../services/user.service';
+import { getPublicLibraryBySlug, LibraryError } from '../services/library.service';
 import { AppError } from '../services/auth.service';
 
 const router = Router();
@@ -93,6 +94,29 @@ router.get('/:username/libraries', async (req: Request, res: Response) => {
       return;
     }
     console.error('Get public libraries error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// ── GET /users/:username/libraries/:slug — Public library detail ─
+
+router.get('/:username/libraries/:slug', async (req: Request, res: Response) => {
+  try {
+    const { username, slug } = req.params;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const pageSize = Math.min(parseInt(req.query.pageSize as string) || 20, 100);
+    const result = await getPublicLibraryBySlug(username, slug, page, pageSize);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    if (error instanceof LibraryError) {
+      res.status(error.statusCode).json({ success: false, error: error.message });
+      return;
+    }
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ success: false, error: error.message });
+      return;
+    }
+    console.error('Get public library detail error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });

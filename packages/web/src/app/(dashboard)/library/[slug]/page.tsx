@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import {
   libraryApi,
+  userApi,
   type LibraryData,
   type LibraryItemData,
   type PaginatedData,
@@ -20,9 +21,12 @@ import { GameGridSkeleton } from '@/components/ui/skeleton';
 
 export default function LibraryDetailPage() {
   const { slug } = useParams<{ slug: string }>();
+  const searchParams = useSearchParams();
+  const viewingUser = searchParams.get('user');
   const router = useRouter();
-  const { accessToken, isLoading: authLoading } = useAuth();
+  const { accessToken, isLoading: authLoading, user: currentUser } = useAuth();
   const toast = useToast();
+  const isPublicView = !!viewingUser && viewingUser !== currentUser?.username;
 
   const [library, setLibrary] = useState<LibraryData | null>(null);
   const [items, setItems] = useState<PaginatedData<LibraryItemData> | null>(null);
@@ -43,7 +47,22 @@ export default function LibraryDetailPage() {
   const [ratingValue, setRatingValue] = useState('');
 
   const load = useCallback(async () => {
-    if (!accessToken || !slug) return;
+    if (!slug) return;
+    // Public view: fetch via username endpoint (no auth needed)
+    if (isPublicView && viewingUser) {
+      try {
+        const data = await userApi.getPublicLibraryBySlug(viewingUser, slug, page);
+        setLibrary(data.library);
+        setItems(data.items);
+      } catch {
+        toast.error('Failed to load library');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    // Own library: fetch with auth
+    if (!accessToken) return;
     try {
       const data = await libraryApi.getBySlug(accessToken, slug, page);
       setLibrary(data.library);
@@ -53,7 +72,7 @@ export default function LibraryDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [accessToken, slug, page]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [accessToken, slug, page, isPublicView, viewingUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!authLoading) load();
@@ -216,8 +235,11 @@ export default function LibraryDetailPage() {
           ) : (
             <div>
               <div className="flex items-center gap-3">
-                <Link href="/library" className="text-neutral-500 hover:text-neutral-300 transition-colors">
-                  ← Libraries
+                <Link
+                  href={isPublicView ? `/users/${viewingUser}` : '/library'}
+                  className="text-neutral-500 hover:text-neutral-300 transition-colors"
+                >
+                  ← {isPublicView ? `${viewingUser}'s Profile` : 'Libraries'}
                 </Link>
               </div>
               <h1 className="text-3xl font-black tracking-tight mt-2">{library.name}</h1>
@@ -227,7 +249,7 @@ export default function LibraryDetailPage() {
               <p className="mt-1 text-sm text-neutral-500">{library.itemCount} games</p>
             </div>
           )}
-          {!editMode && (
+          {!editMode && !isPublicView && (
             <div className="flex gap-2 shrink-0">
               {!library.isDefault && (
                 <>
@@ -296,18 +318,28 @@ export default function LibraryDetailPage() {
                     </p>
                   )}
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => openRatingModal(item.id, item.userRating)}
-                      className="text-xs px-2 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors cursor-pointer"
-                    >
-                      {item.userRating ? `★ ${item.userRating}/10` : '☆ Rate'}
-                    </button>
-                    <button
-                      onClick={() => handleRemove(item.id)}
-                      className="text-xs px-2 py-1 rounded-lg bg-neutral-800 hover:bg-red-900/50 text-neutral-400 hover:text-red-400 transition-colors cursor-pointer ml-auto"
-                    >
-                      Remove
-                    </button>
+                    {isPublicView ? (
+                      item.userRating ? (
+                        <span className="text-xs px-2 py-1 rounded-lg bg-neutral-800 text-neutral-300">
+                          ★ {item.userRating}/10
+                        </span>
+                      ) : null
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => openRatingModal(item.id, item.userRating)}
+                          className="text-xs px-2 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors cursor-pointer"
+                        >
+                          {item.userRating ? `★ ${item.userRating}/10` : '☆ Rate'}
+                        </button>
+                        <button
+                          onClick={() => handleRemove(item.id)}
+                          className="text-xs px-2 py-1 rounded-lg bg-neutral-800 hover:bg-red-900/50 text-neutral-400 hover:text-red-400 transition-colors cursor-pointer ml-auto"
+                        >
+                          Remove
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
