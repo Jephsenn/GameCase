@@ -120,7 +120,7 @@ export default function GameDetailPage() {
     <PageTransition className="space-y-8">
       {/* Hero section */}
       <FadeIn>
-        <div className="relative rounded-2xl border border-neutral-800/80 overflow-hidden">
+        <div className="relative rounded-2xl border border-neutral-800/80">
         {game.backgroundImage && (
           <div className="absolute inset-0 overflow-hidden rounded-2xl">
             <Image
