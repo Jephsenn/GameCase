@@ -200,6 +200,41 @@ export interface ImportResult {
 // Auth types
 // ──────────────────────────────────────────────
 
+// ──────────────────────────────────────────────
+// Friendship types
+// ──────────────────────────────────────────────
+
+export type FriendshipStatus = 'pending' | 'accepted' | 'declined' | 'blocked';
+
+export interface FriendRequest {
+  id: string;
+  requester: UserPublicProfile;
+  recipient: UserPublicProfile;
+  status: FriendshipStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ──────────────────────────────────────────────
+// Activity Feed types
+// ──────────────────────────────────────────────
+
+export type ActivityType = 'game_added' | 'game_rated' | 'game_noted' | 'library_created';
+
+export interface ActivityFeedItem {
+  id: string;
+  user: UserPublicProfile;
+  type: ActivityType;
+  game: GameListItem | null;
+  library: { id: string; name: string; slug: string } | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+// ──────────────────────────────────────────────
+// Auth types
+// ──────────────────────────────────────────────
+
 export interface LoginRequest {
   email: string;
   password: string;

@@ -64,13 +64,19 @@ export async function getPublicProfile(username: string) {
 
   if (!user) throw new AppError('User not found', 404);
 
+  const publicLibraries = user.libraries.map((lib) => ({
+    ...lib,
+    itemCount: lib._count.items,
+    _count: undefined,
+  }));
+
+  const totalGamesTracked = publicLibraries.reduce((sum, lib) => sum + lib.itemCount, 0);
+
   return {
     ...user,
-    libraries: user.libraries.map((lib) => ({
-      ...lib,
-      itemCount: lib._count.items,
-      _count: undefined,
-    })),
+    libraryCount: publicLibraries.length,
+    totalGamesTracked,
+    libraries: publicLibraries,
   };
 }
 

@@ -6,3 +6,134 @@
 }
 
 /* App is always dark-themed — no light mode toggle needed */
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar — dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(115, 115, 115, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(115, 115, 115, 0.5);
+}
+
+/* Selection color */
+::selection {
+  background: rgba(139, 92, 246, 0.3);
+  color: white;
+}
+
+/* ── Rich-text content (game descriptions, etc.) ── */
+.game-description {
+  line-height: 1.75;
+}
+
+.game-description p {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+.game-description p:first-child {
+  margin-top: 0;
+}
+
+.game-description p:last-child {
+  margin-bottom: 0;
+}
+
+.game-description br {
+  content: "";
+  display: block;
+  margin-top: 0.5em;
+}
+
+.game-description h1,
+.game-description h2,
+.game-description h3,
+.game-description h4 {
+  font-weight: 700;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+  color: #f5f5f5;
+}
+
+.game-description h1 { font-size: 1.5em; }
+.game-description h2 { font-size: 1.25em; }
+.game-description h3 { font-size: 1.125em; }
+
+.game-description ul,
+.game-description ol {
+  padding-left: 1.5em;
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+.game-description ul { list-style-type: disc; }
+.game-description ol { list-style-type: decimal; }
+
+.game-description li {
+  margin-top: 0.375em;
+  margin-bottom: 0.375em;
+}
+
+.game-description li::marker {
+  color: rgba(139, 92, 246, 0.6);
+}
+
+.game-description a {
+  color: #a78bfa;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s;
+}
+
+.game-description a:hover {
+  color: #c4b5fd;
+}
+
+.game-description strong,
+.game-description b {
+  font-weight: 600;
+  color: #e5e5e5;
+}
+
+.game-description em,
+.game-description i {
+  font-style: italic;
+}
+
+.game-description blockquote {
+  border-left: 3px solid rgba(139, 92, 246, 0.4);
+  padding-left: 1em;
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+  color: #a3a3a3;
+  font-style: italic;
+}
+
+.game-description hr {
+  border: none;
+  border-top: 1px solid rgba(115, 115, 115, 0.3);
+  margin: 1.5em 0;
+}
+
+.game-description img {
+  max-width: 100%;
+  border-radius: 0.75rem;
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}

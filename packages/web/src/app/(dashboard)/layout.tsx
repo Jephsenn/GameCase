@@ -26,9 +26,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!isAuthenticated) return null;
 
   return (
-    <div className="min-h-screen">
+    <div className="relative min-h-screen">
+      {/* Page-level ambient gradient */}
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-violet-950/10 via-transparent to-fuchsia-950/5" />
+      <div className="pointer-events-none fixed top-0 left-1/2 h-[600px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-600/[0.04] blur-[120px]" />
       <Navbar />
-      <main className="mx-auto max-w-7xl px-6 py-8">{children}</main>
+      <main className="relative mx-auto max-w-7xl px-6 py-8">{children}</main>
     </div>
   );
 }

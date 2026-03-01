@@ -120,18 +120,19 @@ export default function GameDetailPage() {
     <PageTransition className="space-y-8">
       {/* Hero section */}
       <FadeIn>
-        <div className="relative rounded-2xl border border-neutral-800">
+        <div className="relative rounded-2xl border border-neutral-800/80 overflow-hidden">
         {game.backgroundImage && (
           <div className="absolute inset-0 overflow-hidden rounded-2xl">
             <Image
               src={game.backgroundImage}
               alt=""
               fill
-              className="object-cover opacity-30"
+              className="object-cover opacity-25"
               priority
               sizes="100vw"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/80 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/80 to-neutral-950/40" />
+            <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/60 via-transparent to-neutral-950/60" />
           </div>
         )}
         <div className="relative p-6 sm:p-8 flex flex-col sm:flex-row gap-6">
@@ -161,7 +162,7 @@ export default function GameDetailPage() {
               <Link href="/games" className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors">
                 ← Back to games
               </Link>
-              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mt-2">{game.title}</h1>
+              <h1 className="text-3xl sm:text-4xl font-black tracking-tight mt-2">{game.title}</h1>
             </div>
 
             {/* Meta row */}
@@ -187,7 +188,7 @@ export default function GameDetailPage() {
                 </span>
               )}
               {game.rating && (
-                <span className="bg-violet-500/20 text-violet-400 px-3 py-1 rounded-full">
+                <span className="bg-violet-500/20 text-violet-300 px-3 py-1 rounded-full font-medium border border-violet-500/20">
                   ★ {game.rating.toFixed(1)}
                 </span>
               )}
@@ -272,10 +273,10 @@ export default function GameDetailPage() {
       {/* Description */}
       {game.description && (
         <FadeIn delay={0.15}>
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6">
-            <h2 className="text-lg font-semibold mb-3">About</h2>
+          <div className="rounded-2xl border border-neutral-800/80 bg-neutral-900/50 p-6 backdrop-blur-sm">
+            <h2 className="text-lg font-bold mb-3">About</h2>
             <div
-              className="text-sm text-neutral-300 leading-relaxed prose prose-invert max-w-none prose-p:my-2"
+              className="text-sm text-neutral-300 game-description max-w-none"
               dangerouslySetInnerHTML={{ __html: game.description }}
             />
           </div>
@@ -285,8 +286,8 @@ export default function GameDetailPage() {
       {/* Tags */}
       {game.tags.length > 0 && (
         <FadeIn delay={0.2}>
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6">
-            <h2 className="text-lg font-semibold mb-3">Tags</h2>
+          <div className="rounded-2xl border border-neutral-800/80 bg-neutral-900/50 p-6 backdrop-blur-sm">
+            <h2 className="text-lg font-bold mb-3">Tags</h2>
             <div className="flex flex-wrap gap-2">
               {game.tags.map((t) => (
                 <span key={t.id} className="text-xs bg-neutral-800 text-neutral-400 px-2.5 py-1 rounded-lg">
@@ -301,15 +302,15 @@ export default function GameDetailPage() {
       {/* Screenshots */}
       {game.screenshots.length > 0 && (
         <FadeIn delay={0.25}>
-          <h2 className="text-lg font-semibold mb-4">Screenshots</h2>
+          <h2 className="text-lg font-bold mb-4">Screenshots</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {game.screenshots.map((url, i) => (
-              <div key={i} className="relative aspect-video rounded-xl overflow-hidden border border-neutral-800">
+              <div key={i} className="relative aspect-video rounded-xl overflow-hidden border border-neutral-800/80 group">
                 <Image
                   src={url}
                   alt={`${game.title} screenshot ${i + 1}`}
                   fill
-                  className="object-cover"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
                   sizes="(max-width: 640px) 100vw, 50vw"
                 />
               </div>

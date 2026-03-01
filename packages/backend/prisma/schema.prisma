@@ -30,6 +30,9 @@ model User {
 
   libraries       Library[]
   recommendations Recommendation[]
+  sentFriendRequests     Friendship[] @relation("FriendshipRequester")
+  receivedFriendRequests Friendship[] @relation("FriendshipRecipient")
+  activityFeedItems      ActivityFeedItem[]
 
   @@unique([oauthProvider, oauthProviderId])
   @@index([email])
@@ -63,6 +66,7 @@ model Game {
   screenshots     GameScreenshot[]
   libraryItems    LibraryItem[]
   recommendations Recommendation[]
+  activityFeedItems ActivityFeedItem[]
 
   @@index([title])
   @@index([slug])
@@ -173,6 +177,7 @@ model Library {
 
   user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   items LibraryItem[]
+  activityFeedItems ActivityFeedItem[]
 
   @@unique([userId, slug])
   @@index([userId])
@@ -192,6 +197,7 @@ model LibraryItem {
 
   library Library @relation(fields: [libraryId], references: [id], onDelete: Cascade)
   game    Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  activityFeedItems ActivityFeedItem[]
 
   @@unique([libraryId, gameId])
   @@index([libraryId])
@@ -218,4 +224,46 @@ model Recommendation {
   @@index([userId])
   @@index([userId, score(sort: Desc)])
   @@map("recommendations")
+}
+
+// ── Friendship ───────────────────────────────────────
+
+model Friendship {
+  id          String   @id @default(cuid())
+  requesterId String   @map("requester_id")
+  recipientId String   @map("recipient_id")
+  status      String   // 'pending' | 'accepted' | 'declined' | 'blocked'
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  requester User @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  recipient User @relation("FriendshipRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, recipientId])
+  @@index([requesterId])
+  @@index([recipientId])
+  @@map("friendships")
+}
+
+// ── Activity Feed Item ───────────────────────────────
+
+model ActivityFeedItem {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  type          String   // 'game_added' | 'game_rated' | 'game_noted' | 'library_created'
+  gameId        String?  @map("game_id")
+  libraryId     String?  @map("library_id")
+  libraryItemId String?  @map("library_item_id")
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game        Game?        @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  library     Library?     @relation(fields: [libraryId], references: [id], onDelete: SetNull)
+  libraryItem LibraryItem? @relation(fields: [libraryItemId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([gameId])
+  @@index([libraryId])
+  @@map("activity_feed_items")
 }

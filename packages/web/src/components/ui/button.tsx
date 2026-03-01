@@ -7,13 +7,13 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-violet-600 text-white hover:bg-violet-500 active:bg-violet-700',
+        default: 'bg-violet-600 text-white hover:bg-violet-500 hover:shadow-[0_0_24px_rgba(139,92,246,0.35)] active:bg-violet-700',
         secondary:
-          'bg-neutral-800 text-neutral-100 hover:bg-neutral-700 active:bg-neutral-800 border border-neutral-700',
+          'bg-neutral-800/80 text-neutral-100 hover:bg-neutral-700 active:bg-neutral-800 border border-neutral-700/80 backdrop-blur-sm',
         outline:
-          'border border-neutral-700 text-neutral-300 hover:bg-neutral-800 hover:text-white active:bg-neutral-900',
-        ghost: 'text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100',
-        danger: 'bg-red-600 text-white hover:bg-red-500 active:bg-red-700',
+          'border border-neutral-700/80 text-neutral-300 hover:bg-neutral-800/80 hover:text-white active:bg-neutral-900 hover:border-neutral-600',
+        ghost: 'text-neutral-400 hover:bg-neutral-800/80 hover:text-neutral-100',
+        danger: 'bg-red-600 text-white hover:bg-red-500 hover:shadow-[0_0_20px_rgba(220,38,38,0.3)] active:bg-red-700',
       },
       size: {
         sm: 'h-9 px-4 text-xs',

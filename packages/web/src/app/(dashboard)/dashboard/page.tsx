@@ -8,12 +8,14 @@ import { libraryApi, recommendationApi, type LibraryData, type RecommendationIte
 import { PageTransition, FadeIn, StaggerContainer, StaggerItem } from '@/components/ui/animations';
 import { StatCardSkeleton } from '@/components/ui/skeleton';
 
-const STAT_COLORS: Record<string, string> = {
-  played: 'from-green-500/20 to-green-500/5',
-  currently_playing: 'from-blue-500/20 to-blue-500/5',
-  want_to_play: 'from-violet-500/20 to-violet-500/5',
-  backlog: 'from-orange-500/20 to-orange-500/5',
+const STAT_COLORS: Record<string, { gradient: string; glow: string; accent: string }> = {
+  played: { gradient: 'from-green-500/20 to-green-500/5', glow: 'hover:shadow-green-500/10', accent: 'text-green-400' },
+  currently_playing: { gradient: 'from-blue-500/20 to-blue-500/5', glow: 'hover:shadow-blue-500/10', accent: 'text-blue-400' },
+  want_to_play: { gradient: 'from-violet-500/20 to-violet-500/5', glow: 'hover:shadow-violet-500/10', accent: 'text-violet-400' },
+  backlog: { gradient: 'from-orange-500/20 to-orange-500/5', glow: 'hover:shadow-orange-500/10', accent: 'text-orange-400' },
 };
+
+const DEFAULT_STAT = { gradient: 'from-neutral-800/20 to-neutral-800/5', glow: 'hover:shadow-violet-500/5', accent: 'text-neutral-300' };
 
 export default function DashboardPage() {
   const { user, accessToken } = useAuth();
@@ -40,8 +42,8 @@ export default function DashboardPage() {
     <PageTransition className="space-y-8">
       {/* Welcome */}
       <FadeIn>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Welcome, {user.displayName || user.username} 👋
+        <h1 className="text-3xl font-black tracking-tight">
+          Welcome, <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">{user.displayName || user.username}</span> 👋
         </h1>
         <p className="mt-2 text-neutral-400">
           {loading
@@ -57,30 +59,33 @@ export default function DashboardPage() {
         <StatCardSkeleton />
       ) : (
         <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {defaultLibs.map((lib) => (
-            <StaggerItem key={lib.id}>
-              <Link
-                href={`/library/${lib.slug}`}
-                className={`block rounded-2xl border border-neutral-800 bg-gradient-to-br ${STAT_COLORS[lib.defaultType || ''] || 'from-neutral-800/20 to-neutral-800/5'} p-6 transition-all hover:border-neutral-700 hover:shadow-lg hover:shadow-violet-500/5`}
-              >
-                <p className="text-sm text-neutral-400">{lib.name}</p>
-                <p className="mt-1 text-2xl font-bold">{lib.itemCount}</p>
-              </Link>
-            </StaggerItem>
-          ))}
+          {defaultLibs.map((lib) => {
+            const colors = STAT_COLORS[lib.defaultType || ''] || DEFAULT_STAT;
+            return (
+              <StaggerItem key={lib.id}>
+                <Link
+                  href={`/library/${lib.slug}`}
+                  className={`block rounded-2xl border border-neutral-800/80 bg-gradient-to-br ${colors.gradient} p-6 transition-all duration-300 hover:border-neutral-700 hover:shadow-xl ${colors.glow} hover:-translate-y-0.5`}
+                >
+                  <p className="text-sm text-neutral-400">{lib.name}</p>
+                  <p className={`mt-1 text-2xl font-bold ${colors.accent}`}>{lib.itemCount}</p>
+                </Link>
+              </StaggerItem>
+            );
+          })}
         </StaggerContainer>
       )}
 
       {/* Custom libraries */}
       {customLibs.length > 0 && (
         <FadeIn delay={0.2}>
-          <h2 className="text-lg font-semibold mb-4">Custom Libraries</h2>
+          <h2 className="text-lg font-bold mb-4">Custom Libraries</h2>
           <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" delay={0.1}>
             {customLibs.map((lib) => (
               <StaggerItem key={lib.id}>
                 <Link
                   href={`/library/${lib.slug}`}
-                  className="block rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6 transition-all hover:border-neutral-700 hover:shadow-lg hover:shadow-violet-500/5"
+                  className="block rounded-2xl border border-neutral-800/80 bg-neutral-900/50 p-6 transition-all duration-300 hover:border-violet-500/30 hover:shadow-xl hover:shadow-violet-500/5 hover:-translate-y-0.5"
                 >
                   <p className="font-medium">{lib.name}</p>
                   {lib.description && (
@@ -98,7 +103,7 @@ export default function DashboardPage() {
       {recs.length > 0 && (
         <FadeIn delay={0.3}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Recommended For You</h2>
+            <h2 className="text-lg font-bold">Recommended For You</h2>
             <Link href="/recommendations" className="text-sm text-violet-400 hover:underline">
               View all →
             </Link>
@@ -108,7 +113,7 @@ export default function DashboardPage() {
               <StaggerItem key={rec.id}>
                 <Link
                   href={`/games/${rec.game.slug}`}
-                  className="group block rounded-2xl border border-neutral-800 bg-neutral-900/50 overflow-hidden transition-all hover:border-neutral-700 hover:shadow-lg hover:shadow-violet-500/5"
+                  className="group block rounded-2xl border border-neutral-800/80 bg-neutral-900/50 overflow-hidden transition-all duration-300 hover:border-violet-500/30 hover:shadow-xl hover:shadow-violet-500/10 hover:-translate-y-0.5"
                 >
                   <div className="relative aspect-[3/4] bg-neutral-800">
                     {(rec.game.coverImage || rec.game.backgroundImage) ? (
@@ -142,8 +147,8 @@ export default function DashboardPage() {
 
       {/* Profile info */}
       <FadeIn delay={0.4}>
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6">
-          <h2 className="text-lg font-semibold mb-4">Your Profile</h2>
+        <div className="rounded-2xl border border-neutral-800/80 bg-neutral-900/50 p-6 backdrop-blur-sm">
+          <h2 className="text-lg font-bold mb-4">Your Profile</h2>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
               <dt className="text-neutral-500">Username</dt>

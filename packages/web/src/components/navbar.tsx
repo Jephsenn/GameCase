@@ -13,6 +13,8 @@ const navLinks = [
   { href: '/library', label: 'Library' },
   { href: '/games', label: 'Browse Games' },
   { href: '/recommendations', label: 'For You' },
+  { href: '/feed', label: 'Feed' },
+  { href: '/friends', label: 'Friends' },
 ];
 
 export function Navbar() {
@@ -26,11 +28,13 @@ export function Navbar() {
   }
 
   return (
-    <header className="border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-md sticky top-0 z-50">
+    <header className="sticky top-0 z-50 border-b border-neutral-800/80 bg-neutral-950/80 backdrop-blur-xl">
+      {/* Gradient accent line at very top */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <div className="flex items-center gap-8">
-          <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-sm font-bold text-white shadow-md shadow-violet-500/20">
+          <Link href="/dashboard" className="flex items-center gap-3 group">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition-shadow group-hover:shadow-violet-500/40">
               G
             </div>
             <span className="text-lg font-semibold tracking-tight">
@@ -62,9 +66,16 @@ export function Navbar() {
           </nav>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-neutral-400 hidden sm:block">
-            {user?.displayName || user?.username}
-          </span>
+          <Link
+            href="/profile"
+            className="flex items-center gap-2 text-sm text-neutral-400 hover:text-neutral-200 transition-colors hidden sm:flex"
+            aria-label="View profile"
+          >
+            <div className="h-7 w-7 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-[10px] font-bold text-white">
+              {(user?.displayName || user?.username || '').slice(0, 2).toUpperCase()}
+            </div>
+            <span>{user?.displayName || user?.username}</span>
+          </Link>
           <Button variant="ghost" size="sm" onClick={handleLogout} className="hidden sm:flex">
             Sign Out
           </Button>
@@ -117,9 +128,14 @@ export function Navbar() {
                 </Link>
               ))}
               <div className="pt-3 border-t border-neutral-800 mt-3 flex items-center justify-between">
-                <span className="text-sm text-neutral-500">
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileOpen(false)}
+                  className="text-sm text-neutral-400 hover:text-neutral-200 transition-colors"
+                  aria-label="View profile"
+                >
                   {user?.displayName || user?.username}
-                </span>
+                </Link>
                 <Button variant="ghost" size="sm" onClick={handleLogout}>
                   Sign Out
                 </Button>

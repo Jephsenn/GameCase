@@ -210,6 +210,18 @@ export async function createLibrary(
   });
 
   await cacheDel(`user:${userId}:libraries`);
+
+  // Activity feed trigger: library_created
+  try {
+    await prisma.activityFeedItem.create({
+      data: {
+        userId,
+        type: 'library_created',
+        libraryId: library.id,
+      },
+    });
+  } catch { /* non-critical */ }
+
   return { ...formatLibrary(library), userId: library.userId };
 }
 
@@ -329,6 +341,19 @@ export async function addGameToLibrary(
 
   await cacheDel(`user:${userId}:libraries`);
 
+  // Activity feed trigger: game_added
+  try {
+    await prisma.activityFeedItem.create({
+      data: {
+        userId,
+        type: 'game_added',
+        gameId,
+        libraryId,
+        libraryItemId: item.id,
+      },
+    });
+  } catch { /* non-critical */ }
+
   return {
     id: item.id,
     libraryId,
@@ -395,6 +420,33 @@ export async function updateLibraryItem(
   });
 
   await cacheDel(`user:${userId}:libraries`);
+
+  // Activity feed triggers: game_rated and/or game_noted
+  try {
+    if (input.userRating !== undefined && input.userRating !== item.userRating) {
+      await prisma.activityFeedItem.create({
+        data: {
+          userId,
+          type: 'game_rated',
+          gameId: item.gameId,
+          libraryId: item.libraryId,
+          libraryItemId: item.id,
+          metadata: { oldRating: item.userRating, newRating: input.userRating },
+        },
+      });
+    }
+    if (input.notes !== undefined && input.notes !== item.notes) {
+      await prisma.activityFeedItem.create({
+        data: {
+          userId,
+          type: 'game_noted',
+          gameId: item.gameId,
+          libraryId: item.libraryId,
+          libraryItemId: item.id,
+        },
+      });
+    }
+  } catch { /* non-critical */ }
 
   return {
     id: updated.id,

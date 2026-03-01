@@ -14,6 +14,8 @@ import userRoutes from './routes/user.routes';
 import gameRoutes from './routes/game.routes';
 import libraryRoutes from './routes/library.routes';
 import recommendationRoutes from './routes/recommendation.routes';
+import friendRoutes from './routes/friend.routes';
+import activityRoutes from './routes/activity.routes';
 
 const app = express();
 
@@ -104,6 +106,8 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/games', gameRoutes);
 app.use('/api/v1/libraries', libraryRoutes);
 app.use('/api/v1/recommendations', recommendationRoutes);
+app.use('/api/v1/friends', friendRoutes);
+app.use('/api/v1/activity', activityRoutes);
 
 // ── Admin: manual seed trigger ───────────────
 app.post('/api/v1/admin/seed', async (_req, res) => {

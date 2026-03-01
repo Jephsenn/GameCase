@@ -173,7 +173,7 @@ export default function LibraryDetailPage() {
             type="number"
             min={1}
             max={10}
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-neutral-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="w-full rounded-xl border border-neutral-700/80 bg-neutral-900/80 px-4 py-2.5 text-neutral-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
             placeholder="1–10"
             value={ratingValue}
             onChange={(e) => setRatingValue(e.target.value)}
@@ -197,12 +197,12 @@ export default function LibraryDetailPage() {
           {editMode ? (
             <div className="flex-1 space-y-3">
               <input
-                className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-lg font-bold text-neutral-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full rounded-xl border border-neutral-700/80 bg-neutral-900/80 px-4 py-2.5 text-lg font-bold text-neutral-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
               />
               <textarea
-                className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-sm text-neutral-100 resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full rounded-xl border border-neutral-700/80 bg-neutral-900/80 px-4 py-2.5 text-sm text-neutral-100 resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
                 rows={2}
                 placeholder="Description"
                 value={editDesc}
@@ -220,7 +220,7 @@ export default function LibraryDetailPage() {
                   ← Libraries
                 </Link>
               </div>
-              <h1 className="text-3xl font-bold tracking-tight mt-2">{library.name}</h1>
+              <h1 className="text-3xl font-black tracking-tight mt-2">{library.name}</h1>
               {library.description && (
                 <p className="mt-1 text-neutral-400">{library.description}</p>
               )}
@@ -255,8 +255,8 @@ export default function LibraryDetailPage() {
       {/* Items grid */}
       {items && items.items.length === 0 ? (
         <FadeIn delay={0.1}>
-          <div className="rounded-2xl border border-dashed border-neutral-800 py-16 text-center text-neutral-500">
-            <p className="text-lg">No games in this library yet.</p>
+          <div className="rounded-2xl border border-dashed border-neutral-800/80 bg-neutral-900/30 py-16 text-center text-neutral-500">
+            <p className="text-lg font-medium">No games in this library yet.</p>
             <Link href="/games" className="text-violet-400 hover:underline mt-2 inline-block">
               Browse games to add some
             </Link>
@@ -266,7 +266,7 @@ export default function LibraryDetailPage() {
         <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {items?.items.map((item) => (
             <StaggerItem key={item.id}>
-              <div className="group rounded-2xl border border-neutral-800 bg-neutral-900/50 overflow-hidden transition-all hover:border-neutral-700 hover:shadow-lg hover:shadow-violet-500/5">
+              <div className="group rounded-2xl border border-neutral-800/80 bg-neutral-900/50 overflow-hidden transition-all duration-300 hover:border-violet-500/30 hover:shadow-xl hover:shadow-violet-500/10 hover:-translate-y-0.5">
                 <Link href={`/games/${item.game.slug}`} className="block">
                   <div className="relative aspect-[3/4] bg-neutral-800 overflow-hidden">
                     {(item.game.coverImage || item.game.backgroundImage) ? (

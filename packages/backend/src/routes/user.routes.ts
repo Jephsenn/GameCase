@@ -81,6 +81,22 @@ router.get('/:username', async (req: Request, res: Response) => {
   }
 });
 
+// ── GET /users/:username/libraries — Public libraries ─
+
+router.get('/:username/libraries', async (req: Request, res: Response) => {
+  try {
+    const profile = await getPublicProfile(req.params.username);
+    res.json({ success: true, data: profile.libraries });
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ success: false, error: error.message });
+      return;
+    }
+    console.error('Get public libraries error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
 // ── GET /users/onboarding/genres ────────────────────
 
 router.get('/onboarding/genres', async (_req: Request, res: Response) => {

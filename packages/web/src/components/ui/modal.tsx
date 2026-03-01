@@ -46,7 +46,7 @@ export function Modal({ open, onClose, children, size = 'md' }: ModalProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={onClose}
           />
           {/* Panel */}
@@ -55,7 +55,7 @@ export function Modal({ open, onClose, children, size = 'md' }: ModalProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className={`relative w-full ${SIZE_MAP[size]} rounded-2xl border border-neutral-800 bg-neutral-900 p-6 shadow-2xl`}
+            className={`relative w-full ${SIZE_MAP[size]} rounded-2xl border border-neutral-800/80 bg-neutral-900 p-6 shadow-2xl shadow-black/40`}
           >
             {children}
           </motion.div>

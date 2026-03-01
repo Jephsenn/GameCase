@@ -123,7 +123,9 @@ export default function RecommendationsPage() {
       <FadeIn>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">For You</h1>
+            <h1 className="text-3xl font-black tracking-tight">
+              For <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">You</span>
+            </h1>
             <p className="mt-1 text-neutral-400">
               Personalized game recommendations based on your library
             </p>
@@ -137,8 +139,8 @@ export default function RecommendationsPage() {
       {/* Recommendations */}
       {!data || data.items.length === 0 ? (
         <FadeIn delay={0.1}>
-          <div className="rounded-2xl border border-dashed border-neutral-800 py-16 text-center text-neutral-500">
-            <p className="text-lg">No recommendations yet.</p>
+          <div className="rounded-2xl border border-dashed border-neutral-800/80 bg-neutral-900/30 py-16 text-center text-neutral-500">
+            <p className="text-lg font-medium">No recommendations yet.</p>
             <p className="text-sm mt-1">
               Add some games to your library and we&apos;ll suggest titles you&apos;ll love.
             </p>
@@ -152,7 +154,7 @@ export default function RecommendationsPage() {
           <StaggerContainer className="space-y-4">
             {data.items.map((rec) => (
               <StaggerItem key={rec.id}>
-                <div className="group rounded-2xl border border-neutral-800 bg-neutral-900/50 transition-all hover:border-neutral-700 hover:shadow-lg hover:shadow-violet-500/5">
+                <div className="group rounded-2xl border border-neutral-800/80 bg-neutral-900/50 transition-all duration-300 hover:border-violet-500/30 hover:shadow-xl hover:shadow-violet-500/10">
                   <div className="flex flex-col sm:flex-row">
                     {/* Game cover */}
                     <Link href={`/games/${rec.game.slug}`} className="shrink-0 sm:w-48">

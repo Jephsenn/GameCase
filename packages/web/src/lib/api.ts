@@ -169,6 +169,9 @@ export const userApi = {
   getPublicProfile: (username: string) =>
     request<{ user: Record<string, unknown> }>(`/users/${username}`),
 
+  getPublicLibraries: (username: string) =>
+    request<{ id: string; name: string; slug: string; itemCount: number }[]>(`/users/${username}/libraries`),
+
   getOnboardingGenres: () =>
     request<{ genres: GenreData[] }>('/users/onboarding/genres'),
 
@@ -370,6 +373,93 @@ export const recommendationApi = {
       method: 'DELETE',
       token,
     }),
+};
+
+// ── Friend API ───────────────────────────────────
+
+export interface FriendData {
+  friendshipId: string;
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+}
+
+export interface FriendRequestData {
+  id: string;
+  requester: { id: string; username: string; displayName: string | null; avatarUrl: string | null; bio: string | null };
+  recipient: { id: string; username: string; displayName: string | null; avatarUrl: string | null; bio: string | null };
+  status: 'pending' | 'accepted' | 'declined' | 'blocked';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const friendApi = {
+  sendRequest: (token: string, username: string) =>
+    request<FriendRequestData>('/friends/request', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ username }),
+    }),
+
+  respond: (token: string, friendshipId: string, action: 'accept' | 'decline') =>
+    request<FriendRequestData>(`/friends/${friendshipId}/respond`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify({ action }),
+    }),
+
+  remove: (token: string, friendshipId: string) =>
+    request<{ message: string }>(`/friends/${friendshipId}`, {
+      method: 'DELETE',
+      token,
+    }),
+
+  block: (token: string, targetUserId: string) =>
+    request<{ message: string }>('/friends/block', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ targetUserId }),
+    }),
+
+  getAll: (token: string) =>
+    request<FriendData[]>('/friends', { token }),
+
+  getPending: (token: string) =>
+    request<FriendRequestData[]>('/friends/pending', { token }),
+
+  getSent: (token: string) =>
+    request<FriendRequestData[]>('/friends/sent', { token }),
+
+  getStatus: (token: string, targetUserId: string) =>
+    request<FriendRequestData | null>(`/friends/status/${targetUserId}`, { token }),
+};
+
+// ── Activity API ─────────────────────────────────
+
+export interface ActivityItemData {
+  id: string;
+  user: { id: string; username: string; displayName: string | null; avatarUrl: string | null; bio: string | null };
+  type: 'game_added' | 'game_rated' | 'game_noted' | 'library_created';
+  game: GameListItem | null;
+  library: { id: string; name: string; slug: string } | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export const activityApi = {
+  getMyFeed: (token: string, page = 1, pageSize = 20) =>
+    request<PaginatedData<ActivityItemData>>(
+      `/activity/feed?page=${page}&pageSize=${pageSize}`,
+      { token },
+    ),
+
+  getUserActivity: (token: string, userId: string, page = 1, pageSize = 20) =>
+    request<PaginatedData<ActivityItemData>>(
+      `/activity/users/${userId}?page=${page}&pageSize=${pageSize}`,
+      { token },
+    ),
 };
 
 export { ApiError };

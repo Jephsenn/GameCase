@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/auth-context';
 import { FadeIn } from '@/components/ui/animations';
@@ -44,6 +44,39 @@ function buildColumns(count: number, perCol: number): string[][] {
   return cols;
 }
 
+/* ── Single cover tile with error fallback ── */
+function CoverTile({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  const handleError = useCallback(() => setFailed(true), []);
+
+  return (
+    <div className="relative aspect-[3/4] w-full flex-shrink-0 overflow-hidden rounded-lg bg-neutral-800">
+      {!failed && (
+        <Image
+          src={src}
+          alt=""
+          fill
+          sizes="(min-width:640px) 15vw, 33vw"
+          className="object-cover"
+          onError={handleError}
+        />
+      )}
+      {/* Gradient fallback always behind the image */}
+      <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-neutral-900" />
+      {!failed && (
+        <Image
+          src={src}
+          alt=""
+          fill
+          sizes="(min-width:640px) 15vw, 33vw"
+          className="relative z-[1] object-cover"
+          onError={handleError}
+        />
+      )}
+    </div>
+  );
+}
+
 function MosaicColumn({
   images,
   direction,
@@ -66,18 +99,7 @@ function MosaicColumn({
       {/* Two identical copies → seamless infinite loop */}
       {[0, 1].map((copy) =>
         images.map((src, j) => (
-          <div
-            key={`${copy}-${j}`}
-            className="relative aspect-[3/4] w-full flex-shrink-0 overflow-hidden rounded-lg"
-          >
-            <Image
-              src={src}
-              alt=""
-              fill
-              sizes="(min-width:640px) 15vw, 33vw"
-              className="object-cover"
-            />
-          </div>
+          <CoverTile key={`${copy}-${j}`} src={src} />
         )),
       )}
     </motion.div>

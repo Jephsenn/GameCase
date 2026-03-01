@@ -74,7 +74,9 @@ export default function BrowseGamesPage() {
   return (
     <PageTransition className="space-y-6">
       <FadeIn>
-        <h1 className="text-3xl font-bold tracking-tight">Browse Games</h1>
+        <h1 className="text-3xl font-black tracking-tight">
+          Browse <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">Games</span>
+        </h1>
         <p className="mt-1 text-neutral-400">
           Search and discover games to add to your library
         </p>
@@ -93,7 +95,7 @@ export default function BrowseGamesPage() {
           <select
             value={genre}
             onChange={(e) => { setGenre(e.target.value); setPage(1); }}
-            className="h-11 rounded-xl border border-neutral-800 bg-neutral-900 px-3 text-sm text-neutral-300 focus:outline-none focus:ring-2 focus:ring-violet-500 hover:border-neutral-700 transition-colors"
+            className="h-11 rounded-xl border border-neutral-800/80 bg-neutral-900/80 px-3 text-sm text-neutral-300 focus:outline-none focus:ring-2 focus:ring-violet-500 hover:border-neutral-700 transition-colors backdrop-blur-sm"
           >
             <option value="">All Genres</option>
             {genres.map((g) => (
@@ -103,7 +105,7 @@ export default function BrowseGamesPage() {
           <select
             value={platform}
             onChange={(e) => { setPlatform(e.target.value); setPage(1); }}
-            className="h-11 rounded-xl border border-neutral-800 bg-neutral-900 px-3 text-sm text-neutral-300 focus:outline-none focus:ring-2 focus:ring-violet-500 hover:border-neutral-700 transition-colors"
+            className="h-11 rounded-xl border border-neutral-800/80 bg-neutral-900/80 px-3 text-sm text-neutral-300 focus:outline-none focus:ring-2 focus:ring-violet-500 hover:border-neutral-700 transition-colors backdrop-blur-sm"
           >
             <option value="">All Platforms</option>
             {platforms.map((p) => (
@@ -131,7 +133,7 @@ export default function BrowseGamesPage() {
               <StaggerItem key={game.id}>
                 <Link
                   href={`/games/${game.slug}`}
-                  className="group block rounded-2xl border border-neutral-800 bg-neutral-900/50 overflow-hidden transition-all hover:border-neutral-700 hover:shadow-lg hover:shadow-violet-500/5"
+                  className="group block rounded-2xl border border-neutral-800/80 bg-neutral-900/50 overflow-hidden transition-all duration-300 hover:border-violet-500/30 hover:shadow-xl hover:shadow-violet-500/10 hover:-translate-y-0.5"
                 >
                   <div className="relative aspect-[3/4] bg-neutral-800 overflow-hidden">
                     {(game.coverImage || game.backgroundImage) ? (
@@ -211,8 +213,8 @@ export default function BrowseGamesPage() {
         </>
       ) : (
         <FadeIn>
-          <div className="rounded-2xl border border-dashed border-neutral-800 py-16 text-center text-neutral-500">
-            <p className="text-lg">No games found.</p>
+          <div className="rounded-2xl border border-dashed border-neutral-800/80 bg-neutral-900/30 py-16 text-center text-neutral-500">
+            <p className="text-lg font-medium">No games found.</p>
             <p className="text-sm mt-1">Try different search terms or filters.</p>
           </div>
         </FadeIn>

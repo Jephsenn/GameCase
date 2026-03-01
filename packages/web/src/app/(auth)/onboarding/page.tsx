@@ -90,7 +90,9 @@ export default function OnboardingPage() {
   return (
     <FadeIn className="space-y-6">
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">What do you play?</h2>
+        <h2 className="text-2xl font-black tracking-tight">
+          What do you <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">play</span>?
+        </h2>
         <p className="text-sm text-neutral-400">
           Select your favorite genres so we can personalize your experience.
           Pick at least one.

@@ -76,7 +76,9 @@ export default function LibraryPage() {
       <FadeIn>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Your Library</h1>
+            <h1 className="text-3xl font-black tracking-tight">
+              Your <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">Library</span>
+            </h1>
             <p className="mt-1 text-neutral-400">
               {totalGames} game{totalGames !== 1 ? 's' : ''} across {libraries.length} libraries
             </p>
@@ -98,7 +100,7 @@ export default function LibraryPage() {
             transition={{ duration: 0.25, ease: 'easeOut' }}
             className="overflow-hidden"
           >
-            <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6 space-y-4">
+            <div className="rounded-2xl border border-neutral-800/80 bg-neutral-900/50 p-6 space-y-4 backdrop-blur-sm">
               <Input
                 label="Library Name"
                 placeholder="e.g. Couch Co-op Favorites"
@@ -109,7 +111,7 @@ export default function LibraryPage() {
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-neutral-300">Description (optional)</label>
                 <textarea
-                  className="flex w-full rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent hover:border-neutral-700 transition-colors resize-none"
+                  className="flex w-full rounded-xl border border-neutral-800/80 bg-neutral-900/80 px-4 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent hover:border-neutral-700 transition-colors resize-none backdrop-blur-sm"
                   rows={2}
                   placeholder="What's this library for?"
                   value={newDesc}
@@ -126,16 +128,16 @@ export default function LibraryPage() {
 
       {/* Default libraries */}
       <FadeIn delay={0.1}>
-        <h2 className="text-lg font-semibold mb-4">Default Libraries</h2>
+        <h2 className="text-lg font-bold mb-4">Default Libraries</h2>
         <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {defaultLibs.map((lib) => (
             <StaggerItem key={lib.id}>
               <Link
                 href={`/library/${lib.slug}`}
-                className="group block rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6 transition-all hover:border-neutral-700 hover:shadow-lg hover:shadow-violet-500/5"
+                className="group block rounded-2xl border border-neutral-800/80 bg-neutral-900/50 p-6 transition-all duration-300 hover:border-violet-500/30 hover:shadow-xl hover:shadow-violet-500/10 hover:-translate-y-0.5"
               >
                 <p className="font-medium group-hover:text-white transition-colors">{lib.name}</p>
-                <p className="mt-1 text-2xl font-bold text-violet-400">{lib.itemCount}</p>
+                <p className="mt-1 text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">{lib.itemCount}</p>
                 <p className="text-xs text-neutral-500 mt-1">games</p>
               </Link>
             </StaggerItem>
@@ -145,10 +147,10 @@ export default function LibraryPage() {
 
       {/* Custom libraries */}
       <FadeIn delay={0.2}>
-        <h2 className="text-lg font-semibold mb-4">Custom Libraries</h2>
+        <h2 className="text-lg font-bold mb-4">Custom Libraries</h2>
         {customLibs.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-neutral-800 py-12 text-center text-neutral-500">
-            <p>No custom libraries yet.</p>
+          <div className="rounded-2xl border border-dashed border-neutral-800/80 bg-neutral-900/30 py-12 text-center text-neutral-500">
+            <p className="font-medium">No custom libraries yet.</p>
             <p className="text-sm mt-1">Create one to organize your games your way.</p>
           </div>
         ) : (
@@ -157,7 +159,7 @@ export default function LibraryPage() {
               <StaggerItem key={lib.id}>
                 <Link
                   href={`/library/${lib.slug}`}
-                  className="group block rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6 transition-all hover:border-neutral-700 hover:shadow-lg hover:shadow-violet-500/5"
+                  className="group block rounded-2xl border border-neutral-800/80 bg-neutral-900/50 p-6 transition-all duration-300 hover:border-violet-500/30 hover:shadow-xl hover:shadow-violet-500/10 hover:-translate-y-0.5"
                 >
                   <div className="flex items-start justify-between">
                     <div>
