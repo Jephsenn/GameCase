@@ -34,6 +34,6 @@ export function getStripe(): Stripe {
 /** @deprecated — prefer getStripe() for lazy init. Kept for backwards compat. */
 export const stripe = new Proxy({} as Stripe, {
   get(_target, prop) {
-    return (getStripe() as Record<string | symbol, unknown>)[prop];
+    return (getStripe() as unknown as Record<string | symbol, unknown>)[prop];
   },
 });
