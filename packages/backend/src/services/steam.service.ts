@@ -71,16 +71,25 @@ export async function getSteamGames(steamId: string): Promise<SteamGame[]> {
 
 export async function resolveVanityUrl(vanityName: string): Promise<string | null> {
   try {
+    if (!config.steamApiKey) {
+      logger.error('resolveVanityUrl: STEAM_API_KEY is not set');
+      return null;
+    }
     const url = `https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key=${config.steamApiKey}&vanityurl=${encodeURIComponent(vanityName)}&format=json`;
     const res = await fetch(url);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      logger.warn(`resolveVanityUrl: Steam API returned ${res.status} for vanity "${vanityName}"`);
+      return null;
+    }
 
-    const data = (await res.json()) as { response?: { success: number; steamid?: string } };
+    const data = (await res.json()) as { response?: { success: number; steamid?: string; message?: string } };
+    logger.info(`resolveVanityUrl: Steam response for "${vanityName}": success=${data.response?.success}, message=${data.response?.message}`);
     if (data.response?.success === 1 && data.response.steamid) {
       return data.response.steamid;
     }
     return null;
-  } catch {
+  } catch (err) {
+    logger.error(`resolveVanityUrl: unexpected error for "${vanityName}": ${err}`);
     return null;
   }
 }
@@ -112,6 +121,9 @@ export async function resolveSteamInput(input: string): Promise<string> {
   if (/^\d{17}$/.test(trimmed)) return trimmed;
 
   // Treat as a vanity name
+  if (!config.steamApiKey) {
+    throw new AppError('Steam API key is not configured on the server. Please contact support.', 500);
+  }
   const resolved = await resolveVanityUrl(trimmed);
   if (resolved) return resolved;
 
