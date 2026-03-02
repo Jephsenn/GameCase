@@ -71,6 +71,18 @@ export const CACHE_TTL = {
   GENRES: 86400, // 24 hours
 } as const;
 
+/** Plan limits for free / pro tiers */
+export const PLAN_LIMITS = {
+  free: {
+    maxCustomLibraries: 3,
+    maxFriends: 20,
+  },
+  pro: {
+    maxCustomLibraries: Infinity,
+    maxFriends: Infinity,
+  },
+} as const;
+
 /** Supported OAuth providers */
 export const OAUTH_PROVIDERS = ['google', 'apple'] as const;
 

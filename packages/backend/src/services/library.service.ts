@@ -1,8 +1,9 @@
 import prisma from '../lib/prisma';
 import { cacheDel, cacheGet, cacheSet } from '../lib/redis';
-import { CACHE_TTL, PAGINATION, LIBRARY } from '@gametracker/shared';
+import { CACHE_TTL, PAGINATION, LIBRARY, PLAN_LIMITS } from '@gametracker/shared';
 import { slugify } from '@gametracker/shared';
 import { generateMoreRecommendations } from './recommendation.service';
+import { AppError } from './auth.service';
 
 // ──────────────────────────────────────────────
 // Library Service — CRUD for libraries & items
@@ -87,14 +88,73 @@ export async function getUserLibraries(userId: string) {
   return result;
 }
 
+// ── Library query options for search/sort/filter ──
+
+export interface LibraryQueryOptions {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortBy?: 'added' | 'title' | 'rating' | 'release';
+  sortOrder?: 'asc' | 'desc';
+  genres?: string[];        // genre slugs
+  platforms?: string[];     // platform slugs
+  ratingFilter?: 'rated' | 'unrated';
+}
+
+function buildItemWhere(libraryId: string, opts: LibraryQueryOptions) {
+  const where: Record<string, unknown> = { libraryId };
+
+  if (opts.search) {
+    where.game = {
+      ...((where.game as Record<string, unknown>) || {}),
+      title: { contains: opts.search, mode: 'insensitive' },
+    };
+  }
+
+  if (opts.genres && opts.genres.length > 0) {
+    where.game = {
+      ...((where.game as Record<string, unknown>) || {}),
+      genres: { some: { genre: { slug: { in: opts.genres } } } },
+    };
+  }
+
+  if (opts.platforms && opts.platforms.length > 0) {
+    where.game = {
+      ...((where.game as Record<string, unknown>) || {}),
+      platforms: { some: { platform: { slug: { in: opts.platforms } } } },
+    };
+  }
+
+  if (opts.ratingFilter === 'rated') {
+    where.userRating = { not: null };
+  } else if (opts.ratingFilter === 'unrated') {
+    where.userRating = null;
+  }
+
+  return where;
+}
+
+function buildItemOrderBy(opts: LibraryQueryOptions) {
+  const dir = opts.sortOrder || 'desc';
+  switch (opts.sortBy) {
+    case 'title':   return { game: { title: dir } };
+    case 'rating':  return { userRating: dir };
+    case 'release': return { game: { releaseDate: dir } };
+    case 'added':
+    default:        return { addedAt: dir };
+  }
+}
+
 // ── Get single library with items ─────────────
 
 export async function getLibraryBySlug(
   userId: string,
   slug: string,
-  page: number = 1,
-  pageSize: number = PAGINATION.DEFAULT_PAGE_SIZE,
+  opts: LibraryQueryOptions = {},
 ) {
+  const page = opts.page || 1;
+  const pageSize = opts.pageSize || PAGINATION.DEFAULT_PAGE_SIZE;
+
   const library = await prisma.library.findUnique({
     where: { userId_slug: { userId, slug } },
     select: { ...librarySelect(), userId: true },
@@ -103,17 +163,21 @@ export async function getLibraryBySlug(
   if (!library) throw new LibraryError('Library not found', 404);
 
   const skip = (page - 1) * pageSize;
+  const where = buildItemWhere(library.id, opts);
+  const orderBy = buildItemOrderBy(opts);
 
   const [items, total] = await Promise.all([
     prisma.libraryItem.findMany({
-      where: { libraryId: library.id },
-      orderBy: { addedAt: 'desc' },
+      where: where as any,
+      orderBy: orderBy as any,
       skip,
       take: pageSize,
       select: {
         id: true,
         notes: true,
         userRating: true,
+        platformsPlayed: true,
+        steamImport: true,
         sortOrder: true,
         addedAt: true,
         game: {
@@ -131,7 +195,7 @@ export async function getLibraryBySlug(
         },
       },
     }),
-    prisma.libraryItem.count({ where: { libraryId: library.id } }),
+    prisma.libraryItem.count({ where: where as any }),
   ]);
 
   const flatItems = items.map((item) => ({
@@ -140,6 +204,8 @@ export async function getLibraryBySlug(
     gameId: item.game.id,
     notes: item.notes,
     userRating: item.userRating,
+    platformsPlayed: item.platformsPlayed,
+    steamImport: item.steamImport,
     sortOrder: item.sortOrder,
     addedAt: item.addedAt.toISOString(),
     game: {
@@ -174,9 +240,11 @@ export async function getLibraryBySlug(
 export async function getPublicLibraryBySlug(
   username: string,
   slug: string,
-  page: number = 1,
-  pageSize: number = PAGINATION.DEFAULT_PAGE_SIZE,
+  opts: LibraryQueryOptions = {},
 ) {
+  const page = opts.page || 1;
+  const pageSize = opts.pageSize || PAGINATION.DEFAULT_PAGE_SIZE;
+
   const user = await prisma.user.findUnique({
     where: { username: username.toLowerCase() },
     select: { id: true },
@@ -193,17 +261,21 @@ export async function getPublicLibraryBySlug(
   if (library.visibility !== 'public') throw new LibraryError('Library not found', 404);
 
   const skip = (page - 1) * pageSize;
+  const where = buildItemWhere(library.id, opts);
+  const orderBy = buildItemOrderBy(opts);
 
   const [items, total] = await Promise.all([
     prisma.libraryItem.findMany({
-      where: { libraryId: library.id },
-      orderBy: { addedAt: 'desc' },
+      where: where as any,
+      orderBy: orderBy as any,
       skip,
       take: pageSize,
       select: {
         id: true,
         notes: true,
         userRating: true,
+        platformsPlayed: true,
+        steamImport: true,
         sortOrder: true,
         addedAt: true,
         game: {
@@ -221,7 +293,7 @@ export async function getPublicLibraryBySlug(
         },
       },
     }),
-    prisma.libraryItem.count({ where: { libraryId: library.id } }),
+    prisma.libraryItem.count({ where: where as any }),
   ]);
 
   const flatItems = items.map((item) => ({
@@ -230,6 +302,8 @@ export async function getPublicLibraryBySlug(
     gameId: item.game.id,
     notes: item.notes,
     userRating: item.userRating,
+    platformsPlayed: item.platformsPlayed,
+    steamImport: item.steamImport,
     sortOrder: item.sortOrder,
     addedAt: item.addedAt.toISOString(),
     game: {
@@ -265,10 +339,23 @@ export async function createLibrary(
   userId: string,
   input: { name: string; description?: string; visibility?: 'public' | 'private' },
 ) {
+  // Fetch user plan for limit enforcement
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
+  const plan = (user?.plan === 'pro' ? 'pro' : 'free') as keyof typeof PLAN_LIMITS;
+  const limits = PLAN_LIMITS[plan];
+
   // Check limit
   const count = await prisma.library.count({ where: { userId, isDefault: false } });
-  if (count >= LIBRARY.MAX_CUSTOM_LIBRARIES) {
+  if (count >= limits.maxCustomLibraries) {
+    if (plan === 'free') {
+      throw new AppError(`Free plan is limited to ${limits.maxCustomLibraries} custom libraries. Upgrade to Pro to unlock unlimited libraries.`, 403);
+    }
     throw new LibraryError(`You can have at most ${LIBRARY.MAX_CUSTOM_LIBRARIES} custom libraries`, 400);
+  }
+
+  // Private visibility is Pro-only
+  if (input.visibility === 'private' && plan !== 'pro') {
+    throw new AppError('Private libraries are a Pro feature. Upgrade to Pro to make libraries private.', 403);
   }
 
   const slug = slugify(input.name);
@@ -351,6 +438,13 @@ export async function updateLibrary(
   }
 
   if (input.visibility !== undefined) {
+    // Private visibility is Pro-only
+    if (input.visibility === 'private') {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
+      if (user?.plan !== 'pro') {
+        throw new AppError('Private libraries are a Pro feature. Upgrade to Pro to make libraries private.', 403);
+      }
+    }
     data.visibility = input.visibility;
   }
 
@@ -383,7 +477,7 @@ export async function addGameToLibrary(
   userId: string,
   libraryId: string,
   gameId: string,
-  input?: { notes?: string; userRating?: number },
+  input?: { notes?: string; userRating?: number; platformsPlayed?: string[] },
 ) {
   // Verify ownership
   const library = await prisma.library.findFirst({
@@ -407,11 +501,14 @@ export async function addGameToLibrary(
       gameId,
       notes: input?.notes?.trim() || null,
       userRating: input?.userRating ?? null,
+      platformsPlayed: input?.platformsPlayed ?? [],
     },
     select: {
       id: true,
       notes: true,
       userRating: true,
+      platformsPlayed: true,
+      steamImport: true,
       sortOrder: true,
       addedAt: true,
       game: {
@@ -454,6 +551,8 @@ export async function addGameToLibrary(
     gameId: item.game.id,
     notes: item.notes,
     userRating: item.userRating,
+    platformsPlayed: item.platformsPlayed,
+    steamImport: item.steamImport,
     sortOrder: item.sortOrder,
     addedAt: item.addedAt.toISOString(),
     game: {
@@ -470,12 +569,12 @@ export async function addGameToLibrary(
   };
 }
 
-// ── Update library item (notes, rating) ───────
+// ── Update library item (notes, rating, platforms) ───────
 
 export async function updateLibraryItem(
   userId: string,
   itemId: string,
-  input: { notes?: string; userRating?: number | null },
+  input: { notes?: string; userRating?: number | null; platformsPlayed?: string[] },
 ) {
   // Verify ownership through join
   const item = await prisma.libraryItem.findFirst({
@@ -486,6 +585,7 @@ export async function updateLibraryItem(
   const data: Record<string, unknown> = {};
   if (input.notes !== undefined) data.notes = input.notes?.trim() || null;
   if (input.userRating !== undefined) data.userRating = input.userRating;
+  if (input.platformsPlayed !== undefined) data.platformsPlayed = input.platformsPlayed;
 
   const updated = await prisma.libraryItem.update({
     where: { id: itemId },
@@ -495,6 +595,8 @@ export async function updateLibraryItem(
       libraryId: true,
       notes: true,
       userRating: true,
+      platformsPlayed: true,
+      steamImport: true,
       sortOrder: true,
       addedAt: true,
       game: {
@@ -548,6 +650,8 @@ export async function updateLibraryItem(
     gameId: updated.game.id,
     notes: updated.notes,
     userRating: updated.userRating,
+    platformsPlayed: updated.platformsPlayed,
+    steamImport: updated.steamImport,
     sortOrder: updated.sortOrder,
     addedAt: updated.addedAt.toISOString(),
     game: {
@@ -619,6 +723,8 @@ export async function getGameLibraryStatus(userId: string, gameId: string) {
       libraryId: true,
       userRating: true,
       notes: true,
+      platformsPlayed: true,
+      steamImport: true,
       library: { select: { name: true, slug: true, defaultType: true } },
     },
   });
@@ -631,5 +737,7 @@ export async function getGameLibraryStatus(userId: string, gameId: string) {
     defaultType: item.library.defaultType,
     userRating: item.userRating,
     notes: item.notes,
+    platformsPlayed: item.platformsPlayed,
+    steamImport: item.steamImport,
   }));
 }

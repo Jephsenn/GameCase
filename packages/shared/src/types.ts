@@ -4,6 +4,8 @@
 
 export type OAuthProvider = 'google' | 'apple';
 
+export type PlanType = 'free' | 'pro';
+
 export interface User {
   id: string;
   email: string;
@@ -11,6 +13,7 @@ export interface User {
   displayName: string | null;
   avatarUrl: string | null;
   bio: string | null;
+  plan: PlanType;
   oauthProvider: OAuthProvider | null;
   oauthProviderId: string | null;
   createdAt: string;
@@ -219,7 +222,7 @@ export interface FriendRequest {
 // Activity Feed types
 // ──────────────────────────────────────────────
 
-export type ActivityType = 'game_added' | 'game_rated' | 'game_noted' | 'library_created';
+export type ActivityType = 'game_added' | 'game_rated' | 'game_noted' | 'library_created' | 'steam_imported';
 
 export interface ActivityFeedItem {
   id: string;

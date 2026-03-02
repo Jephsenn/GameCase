@@ -1,5 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { validateBody } from '../middleware/validate';
 import { requireAuth } from '../middleware/auth';
 import type { AuthenticatedRequest } from '../middleware/auth';
@@ -10,11 +13,39 @@ import {
   completeOnboarding,
   getAllGenres,
 } from '../services/user.service';
-import { getPublicLibraryBySlug, LibraryError } from '../services/library.service';
+import { getPublicLibraryBySlug, LibraryError, type LibraryQueryOptions } from '../services/library.service';
+import { getUserStats } from '../services/stats.service';
 import { AppError } from '../services/auth.service';
 
 const router = Router();
+// ── Multer (avatar uploads) ─────────────────────
 
+const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+
+const avatarStorage = multer.diskStorage({
+  destination(_req, _file, cb) {
+    const dir = path.join(__dirname, '../../uploads/avatars');
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename(req, file, cb) {
+    const { userId } = req as AuthenticatedRequest;
+    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    cb(null, `${userId}${ext}`);
+  },
+});
+
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
+  fileFilter(_req, file, cb) {
+    if (ALLOWED_MIME.has(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPEG, PNG, GIF, and WebP images are allowed'));
+    }
+  },
+});
 // ── Validation Schemas ──────────────────────────────
 
 const updateProfileSchema = z.object({
@@ -25,6 +56,38 @@ const updateProfileSchema = z.object({
 
 const onboardingSchema = z.object({
   genreIds: z.array(z.string()).min(1, 'Select at least one genre'),
+});
+
+// ── GET /users/stats ────────────────────────────────
+
+router.get('/stats', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { userId } = req as AuthenticatedRequest;
+
+    // Pro plan check
+    const prisma = (await import('../lib/prisma')).default;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true },
+    });
+    if (user?.plan !== 'pro') {
+      res.status(403).json({
+        success: false,
+        error: 'Upgrade to Pro to unlock Year in Review stats',
+      });
+      return;
+    }
+
+    const stats = await getUserStats(userId);
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ success: false, error: error.message });
+      return;
+    }
+    console.error('Get stats error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
 });
 
 // ── GET /users/profile ──────────────────────────────
@@ -61,6 +124,42 @@ router.patch(
         return;
       }
       console.error('Update profile error:', error);
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  },
+);
+
+// ── POST /users/profile/avatar ──────────────────────
+
+router.post(
+  '/profile/avatar',
+  requireAuth,
+  uploadAvatar.single('avatar'),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        res.status(400).json({ success: false, error: 'No image file provided' });
+        return;
+      }
+      const { userId } = req as AuthenticatedRequest;
+      // Build URL from the configured API base so it is always reachable by clients.
+      // Strip any trailing /api/v1 suffix to get the server root.
+      const { config } = await import('../config');
+      const serverRoot = (process.env.BACKEND_PUBLIC_URL || `http://localhost:${config.port}`).replace(/\/$/, '');
+      // Append timestamp so browsers don't serve a cached version of a replaced image
+      const avatarUrl = `${serverRoot}/uploads/avatars/${req.file.filename}?v=${Date.now()}`;
+      const user = await updateProfile(userId, { avatarUrl });
+      res.json({ success: true, data: { user, avatarUrl } });
+    } catch (error) {
+      if ((error as { message?: string }).message?.includes('Only JPEG')) {
+        res.status(400).json({ success: false, error: (error as Error).message });
+        return;
+      }
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ success: false, error: error.message });
+        return;
+      }
+      console.error('Upload avatar error:', error);
       res.status(500).json({ success: false, error: 'Internal server error' });
     }
   },
@@ -103,9 +202,28 @@ router.get('/:username/libraries', async (req: Request, res: Response) => {
 router.get('/:username/libraries/:slug', async (req: Request, res: Response) => {
   try {
     const { username, slug } = req.params;
-    const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const pageSize = Math.min(parseInt(req.query.pageSize as string) || 20, 100);
-    const result = await getPublicLibraryBySlug(username, slug, page, pageSize);
+    const query = req.query as Record<string, unknown>;
+    const opts: LibraryQueryOptions = {
+      page: Math.max(1, parseInt(query.page as string) || 1),
+      pageSize: Math.min(parseInt(query.pageSize as string) || 20, 100),
+    };
+    if (query.search && typeof query.search === 'string') opts.search = query.search.trim();
+    if (query.sortBy && ['added', 'title', 'rating', 'release'].includes(query.sortBy as string)) {
+      opts.sortBy = query.sortBy as LibraryQueryOptions['sortBy'];
+    }
+    if (query.sortOrder && ['asc', 'desc'].includes(query.sortOrder as string)) {
+      opts.sortOrder = query.sortOrder as 'asc' | 'desc';
+    }
+    if (query.genres && typeof query.genres === 'string') {
+      opts.genres = query.genres.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+    if (query.platforms && typeof query.platforms === 'string') {
+      opts.platforms = query.platforms.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+    if (query.ratingFilter && ['rated', 'unrated'].includes(query.ratingFilter as string)) {
+      opts.ratingFilter = query.ratingFilter as 'rated' | 'unrated';
+    }
+    const result = await getPublicLibraryBySlug(username, slug, opts);
     res.json({ success: true, data: result });
   } catch (error) {
     if (error instanceof LibraryError) {

@@ -3,6 +3,7 @@ const TOKEN_KEY = 'gt_access_token';
 
 interface FetchOptions extends RequestInit {
   token?: string;
+  skipContentType?: boolean;
 }
 
 class ApiError extends Error {
@@ -59,7 +60,7 @@ async function request<T>(endpoint: string, options: FetchOptions = {}): Promise
   const { token, headers: customHeaders, ...fetchOptions } = options;
 
   const buildHeaders = (t?: string): Record<string, string> => ({
-    'Content-Type': 'application/json',
+    ...(options.skipContentType ? {} : { 'Content-Type': 'application/json' }),
     ...((customHeaders as Record<string, string>) || {}),
     ...(t ? { Authorization: `Bearer ${t}` } : {}),
   });
@@ -104,7 +105,11 @@ export interface AuthResponseData {
     displayName: string | null;
     avatarUrl: string | null;
     bio: string | null;
+    plan: 'free' | 'pro';
     onboardingDone: boolean;
+    steamId: string | null;
+    steamPlayerName: string | null;
+    steamAvatarUrl: string | null;
     createdAt: string;
     updatedAt: string;
   };
@@ -166,15 +171,26 @@ export const userApi = {
       body: JSON.stringify(body),
     }),
 
+  uploadAvatar: (token: string, file: File) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    return request<{ user: AuthResponseData['user']; avatarUrl: string }>('/users/profile/avatar', {
+      method: 'POST',
+      token,
+      body: formData,
+      skipContentType: true,
+    });
+  },
+
   getPublicProfile: (username: string) =>
     request<{ user: Record<string, unknown> }>(`/users/${username}`),
 
   getPublicLibraries: (username: string) =>
     request<{ id: string; name: string; slug: string; itemCount: number }[]>(`/users/${username}/libraries`),
 
-  getPublicLibraryBySlug: (username: string, slug: string, page = 1, pageSize = 20) =>
+  getPublicLibraryBySlug: (username: string, slug: string, params: LibraryQueryParams = {}) =>
     request<{ library: LibraryData; items: PaginatedData<LibraryItemData> }>(
-      `/users/${encodeURIComponent(username)}/libraries/${encodeURIComponent(slug)}?page=${page}&pageSize=${pageSize}`,
+      `/users/${encodeURIComponent(username)}/libraries/${encodeURIComponent(slug)}${buildLibraryQs(params)}`,
     ),
 
   getOnboardingGenres: () =>
@@ -274,6 +290,8 @@ export interface LibraryItemData {
   gameId: string;
   notes: string | null;
   userRating: number | null;
+  platformsPlayed: string[];
+  steamImport: boolean;
   sortOrder: number;
   addedAt: string;
   game: GameListItem;
@@ -287,15 +305,42 @@ export interface GameLibraryStatus {
   defaultType: string | null;
   userRating: number | null;
   notes: string | null;
+  platformsPlayed: string[];
+  steamImport: boolean;
+}
+
+export interface LibraryQueryParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortBy?: 'added' | 'title' | 'rating' | 'release';
+  sortOrder?: 'asc' | 'desc';
+  genres?: string[];
+  platforms?: string[];
+  ratingFilter?: 'rated' | 'unrated';
+}
+
+function buildLibraryQs(params: LibraryQueryParams = {}): string {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set('page', String(params.page));
+  if (params.pageSize) qs.set('pageSize', String(params.pageSize));
+  if (params.search) qs.set('search', params.search);
+  if (params.sortBy) qs.set('sortBy', params.sortBy);
+  if (params.sortOrder) qs.set('sortOrder', params.sortOrder);
+  if (params.genres?.length) qs.set('genres', params.genres.join(','));
+  if (params.platforms?.length) qs.set('platforms', params.platforms.join(','));
+  if (params.ratingFilter) qs.set('ratingFilter', params.ratingFilter);
+  const str = qs.toString();
+  return str ? `?${str}` : '';
 }
 
 export const libraryApi = {
   getAll: (token: string) =>
     request<LibraryData[]>('/libraries', { token }),
 
-  getBySlug: (token: string, slug: string, page = 1, pageSize = 20) =>
+  getBySlug: (token: string, slug: string, params: LibraryQueryParams = {}) =>
     request<{ library: LibraryData; items: PaginatedData<LibraryItemData> }>(
-      `/libraries/${encodeURIComponent(slug)}?page=${page}&pageSize=${pageSize}`,
+      `/libraries/${encodeURIComponent(slug)}${buildLibraryQs(params)}`,
       { token },
     ),
 
@@ -326,7 +371,7 @@ export const libraryApi = {
       body: JSON.stringify({ gameId, ...opts }),
     }),
 
-  updateItem: (token: string, itemId: string, body: { notes?: string; userRating?: number | null }) =>
+  updateItem: (token: string, itemId: string, body: { notes?: string; userRating?: number | null; platformsPlayed?: string[] }) =>
     request<LibraryItemData>(`/libraries/items/${itemId}`, {
       method: 'PATCH',
       token,
@@ -460,7 +505,7 @@ export const friendApi = {
 export interface ActivityItemData {
   id: string;
   user: { id: string; username: string; displayName: string | null; avatarUrl: string | null; bio: string | null };
-  type: 'game_added' | 'game_rated' | 'game_noted' | 'library_created';
+  type: 'game_added' | 'game_rated' | 'game_noted' | 'library_created' | 'steam_imported';
   game: GameListItem | null;
   library: { id: string; name: string; slug: string } | null;
   metadata: Record<string, unknown> | null;
@@ -482,3 +527,133 @@ export const activityApi = {
 };
 
 export { ApiError };
+
+// ── Billing API ─────────────────────────────
+
+export const billingApi = {
+  createCheckout: (token: string) =>
+    request<{ url: string }>('/billing/checkout', {
+      method: 'POST',
+      token,
+    }),
+
+  createPortal: (token: string) =>
+    request<{ url: string }>('/billing/portal', {
+      method: 'POST',
+      token,
+    }),
+
+  verifySubscription: (token: string) =>
+    request<{ plan: 'free' | 'pro' }>('/billing/verify', {
+      method: 'POST',
+      token,
+    }),
+};
+
+// ── Steam API ───────────────────────────────
+
+export interface SteamValidation {
+  valid: boolean;
+  playerName?: string;
+  avatarUrl?: string;
+}
+
+export interface SteamAccount {
+  steamId: string;
+  playerName: string;
+  avatarUrl: string | null;
+}
+
+export interface SteamLinkedGame {
+  id: string;
+  gameId: string;
+  name: string;
+  slug: string;
+  coverImage: string | null;
+  addedAt: string;
+}
+
+export interface ImportedGameDetail {
+  name: string;
+  status: 'imported' | 'already_in_library' | 'not_found';
+  coverImage?: string | null;
+  slug?: string | null;
+  gameId?: string | null;
+}
+
+export interface SteamImportResult {
+  imported: number;
+  skipped: number;
+  notFound: number;
+  games: ImportedGameDetail[];
+}
+
+export const steamApi = {
+  validate: (token: string, steamId: string) =>
+    request<SteamValidation>('/steam/validate', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ steamId }),
+    }),
+
+  import: (token: string, steamId: string) =>
+    request<SteamImportResult>('/steam/import', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ steamId }),
+    }),
+
+  getAccount: (token: string) =>
+    request<SteamAccount | null>('/steam/account', { token }),
+
+  unlinkAccount: (token: string) =>
+    request<{ message: string }>('/steam/account', {
+      method: 'DELETE',
+      token,
+    }),
+
+  getGames: (token: string) =>
+    request<SteamLinkedGame[]>('/steam/games', { token }),
+
+  unsyncGame: (token: string, itemId: string) =>
+    request<{ message: string }>(`/steam/games/${itemId}`, {
+      method: 'DELETE',
+      token,
+    }),
+
+  unsyncAll: (token: string) =>
+    request<{ count: number }>('/steam/games', {
+      method: 'DELETE',
+      token,
+    }),
+
+  removeAll: (token: string) =>
+    request<{ count: number }>('/steam/games/remove-all', {
+      method: 'DELETE',
+      token,
+    }),
+};
+
+// ── Stats API ───────────────────────────────
+
+export interface UserStatsData {
+  totalGamesTracked: number;
+  totalLibraries: number;
+  topGenres: { name: string; count: number }[];
+  topRatedGames: {
+    title: string;
+    slug: string;
+    userRating: number;
+    backgroundImage: string | null;
+  }[];
+  mostActiveMonth: { month: string; count: number } | null;
+  friendCount: number;
+  gamesAddedThisYear: number;
+  gamesRatedCount: number;
+  averageRating: number | null;
+}
+
+export const statsApi = {
+  getUserStats: (token: string) =>
+    request<UserStatsData>('/users/stats', { token }),
+};

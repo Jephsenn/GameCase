@@ -423,6 +423,7 @@ export async function searchGames(params: GameSearchParams) {
             name: ge.name,
             slug: ge.slug,
           })) ?? [],
+          screenshots: g.short_screenshots?.map((s) => ({ url: s.image })) ?? [],
         }));
 
       // Local results first, then RAWG extras to fill the page
@@ -459,8 +460,9 @@ export async function searchGames(params: GameSearchParams) {
  */
 export async function getGameDetail(idOrSlug: string, fetchFromRawg = false) {
   const cacheKey = `games:detail:${idOrSlug}`;
-  const cached = await cacheGet(cacheKey);
-  if (cached) return cached;
+  const cached = await cacheGet<{ screenshots: string[]; tags: unknown[] }>(cacheKey);
+  // Skip the cache if we're allowed to enrich from RAWG but the cached entry is missing screenshots or tags
+  if (cached && (!fetchFromRawg || (cached.screenshots.length > 0 && cached.tags.length > 0))) return cached;
 
   let game = await prisma.game.findFirst({
     where: {
@@ -474,24 +476,42 @@ export async function getGameDetail(idOrSlug: string, fetchFromRawg = false) {
     },
   });
 
-  // If not found locally, try RAWG
-  if (!game && fetchFromRawg) {
-    try {
-      // Attempt to interpret as RAWG slug
-      const rawgDetail = await import('../lib/rawg').then((m) => m.getRawgGameBySlug(idOrSlug));
-      await ingestRawgGame(rawgDetail);
+  if (fetchFromRawg) {
+    if (!game) {
+      // Not in local DB at all — fetch from RAWG and ingest
+      try {
+        const rawgDetail = await import('../lib/rawg').then((m) => m.getRawgGameBySlug(idOrSlug));
+        await ingestFullGame(rawgDetail.id);
 
-      game = await prisma.game.findFirst({
-        where: { slug: idOrSlug },
-        include: {
-          platforms: { select: { platform: { select: { id: true, name: true, slug: true } } } },
-          genres: { select: { genre: { select: { id: true, name: true, slug: true } } } },
-          tags: { select: { tag: { select: { id: true, name: true, slug: true } } } },
-          screenshots: { select: { url: true } },
-        },
-      });
-    } catch {
-      // RAWG fetch failed or game doesn't exist
+        game = await prisma.game.findFirst({
+          where: { slug: idOrSlug },
+          include: {
+            platforms: { select: { platform: { select: { id: true, name: true, slug: true } } } },
+            genres: { select: { genre: { select: { id: true, name: true, slug: true } } } },
+            tags: { select: { tag: { select: { id: true, name: true, slug: true } } } },
+            screenshots: { select: { url: true } },
+          },
+        });
+      } catch {
+        // RAWG fetch failed or game doesn't exist
+      }
+    } else if ((game.screenshots.length === 0 || game.tags.length === 0) && game.rawgId) {
+      // In local DB but missing screenshots or tags — enrich via RAWG full-detail + screenshots endpoint
+      try {
+        await ingestFullGame(game.rawgId);
+
+        game = await prisma.game.findFirst({
+          where: { id: game.id },
+          include: {
+            platforms: { select: { platform: { select: { id: true, name: true, slug: true } } } },
+            genres: { select: { genre: { select: { id: true, name: true, slug: true } } } },
+            tags: { select: { tag: { select: { id: true, name: true, slug: true } } } },
+            screenshots: { select: { url: true } },
+          },
+        });
+      } catch {
+        // enrichment failed — serve what we have
+      }
     }
   }
 

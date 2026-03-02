@@ -38,3 +38,9 @@ docker-compose.override.yml
 # Prisma
 packages/backend/prisma/migrations/**/migration_lock.toml
 .vercel
+
+# User-uploaded files
+packages/backend/uploads/*
+!packages/backend/uploads/.gitkeep
+packages/backend/uploads/avatars/*
+!packages/backend/uploads/avatars/.gitkeep

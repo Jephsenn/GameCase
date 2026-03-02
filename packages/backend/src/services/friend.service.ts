@@ -1,5 +1,7 @@
 import prisma from '../lib/prisma';
 import type { FriendshipStatus } from '@gametracker/shared';
+import { PLAN_LIMITS } from '@gametracker/shared';
+import { AppError } from './auth.service';
 
 // ──────────────────────────────────────────────
 // Friend Service — friend requests & management
@@ -121,6 +123,25 @@ export async function respondToRequest(
   if (!friendship) throw new FriendError('Friend request not found', 404);
   if (friendship.recipientId !== userId) throw new FriendError('Only the recipient can respond to this request', 403);
   if (friendship.status !== 'pending') throw new FriendError('This request has already been responded to', 400);
+
+  // Check friend limit when accepting
+  if (action === 'accept') {
+    const recipientUser = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
+    const plan = (recipientUser?.plan === 'pro' ? 'pro' : 'free') as keyof typeof PLAN_LIMITS;
+    const limits = PLAN_LIMITS[plan];
+    const acceptedCount = await prisma.friendship.count({
+      where: {
+        status: 'accepted',
+        OR: [{ requesterId: userId }, { recipientId: userId }],
+      },
+    });
+    if (acceptedCount >= limits.maxFriends) {
+      throw new AppError(
+        `Free plan is limited to ${limits.maxFriends} friends. Upgrade to Pro for unlimited friends.`,
+        403,
+      );
+    }
+  }
 
   const updated = await prisma.friendship.update({
     where: { id: friendshipId },

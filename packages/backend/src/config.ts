@@ -32,6 +32,23 @@ export const config = {
   rawgApiKey: process.env.RAWG_API_KEY || '',
   rawgBaseUrl: process.env.RAWG_BASE_URL || 'https://api.rawg.io/api',
 
+  // Stripe — auto-select test vs live based on NODE_ENV
+  stripeSecretKey:
+    process.env.NODE_ENV === 'production'
+      ? process.env.STRIPE_LIVE_SECRET_KEY || ''
+      : process.env.STRIPE_TEST_SECRET_KEY || '',
+  stripeWebhookSecret:
+    process.env.NODE_ENV === 'production'
+      ? process.env.STRIPE_LIVE_WEBHOOK_SECRET || ''
+      : process.env.STRIPE_TEST_WEBHOOK_SECRET || '',
+  stripeProPriceId:
+    process.env.NODE_ENV === 'production'
+      ? process.env.STRIPE_LIVE_PRO_PRICE_ID || ''
+      : process.env.STRIPE_TEST_PRO_PRICE_ID || '',
+
+  // Steam
+  steamApiKey: process.env.STEAM_API_KEY || '',
+
   // CORS
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
 

@@ -242,6 +242,7 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
         displayName: true,
         avatarUrl: true,
         bio: true,
+        plan: true,
         onboardingDone: true,
         createdAt: true,
         updatedAt: true,

@@ -25,6 +25,13 @@ model User {
   oauthProviderId String?   @map("oauth_provider_id")
   refreshToken    String?   @map("refresh_token")
   onboardingDone  Boolean   @default(false) @map("onboarding_done")
+  plan            String    @default("free") // 'free' | 'pro'
+  planExpiresAt   DateTime? @map("plan_expires_at")
+  steamId              String?  @map("steam_id")
+  steamPlayerName      String?  @map("steam_player_name")
+  steamAvatarUrl       String?  @map("steam_avatar_url")
+  stripeCustomerId     String?  @map("stripe_customer_id")
+  stripeSubscriptionId String?  @map("stripe_subscription_id")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
@@ -189,13 +196,15 @@ model Library {
 // ── Library Item ─────────────────────────────────────────
 
 model LibraryItem {
-  id         String   @id @default(cuid())
-  libraryId  String   @map("library_id")
-  gameId     String   @map("game_id")
-  notes      String?  @db.Text
-  userRating Float?   @map("user_rating")
-  sortOrder  Int      @default(0) @map("sort_order")
-  addedAt    DateTime @default(now()) @map("added_at")
+  id              String   @id @default(cuid())
+  libraryId       String   @map("library_id")
+  gameId          String   @map("game_id")
+  notes           String?  @db.Text
+  userRating      Float?   @map("user_rating")
+  platformsPlayed String[] @default([]) @map("platforms_played")
+  steamImport     Boolean  @default(false) @map("steam_import")
+  sortOrder       Int      @default(0) @map("sort_order")
+  addedAt         DateTime @default(now()) @map("added_at")
 
   library Library @relation(fields: [libraryId], references: [id], onDelete: Cascade)
   game    Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
@@ -268,7 +277,7 @@ model Friendship {
 model ActivityFeedItem {
   id            String   @id @default(cuid())
   userId        String   @map("user_id")
-  type          String   // 'game_added' | 'game_rated' | 'game_noted' | 'library_created'
+  type          String   // 'game_added' | 'game_rated' | 'game_noted' | 'library_created' | 'steam_imported'
   gameId        String?  @map("game_id")
   libraryId     String?  @map("library_id")
   libraryItemId String?  @map("library_item_id")

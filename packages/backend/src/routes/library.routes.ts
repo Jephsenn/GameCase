@@ -14,6 +14,7 @@ import {
   moveGameToLibrary,
   getGameLibraryStatus,
   LibraryError,
+  type LibraryQueryOptions,
 } from '../services/library.service';
 import { PAGINATION } from '@gametracker/shared';
 
@@ -30,6 +31,34 @@ function handleError(res: Response, error: unknown) {
   }
   console.error('Library error:', error);
   res.status(500).json({ success: false, error: 'Internal server error' });
+}
+
+// Helper to parse library query options from request
+function parseLibraryQuery(query: Record<string, unknown>): LibraryQueryOptions {
+  const opts: LibraryQueryOptions = {
+    page: Math.max(1, parseInt(query.page as string) || PAGINATION.DEFAULT_PAGE),
+    pageSize: Math.min(
+      parseInt(query.pageSize as string) || PAGINATION.DEFAULT_PAGE_SIZE,
+      PAGINATION.MAX_PAGE_SIZE,
+    ),
+  };
+  if (query.search && typeof query.search === 'string') opts.search = query.search.trim();
+  if (query.sortBy && ['added', 'title', 'rating', 'release'].includes(query.sortBy as string)) {
+    opts.sortBy = query.sortBy as LibraryQueryOptions['sortBy'];
+  }
+  if (query.sortOrder && ['asc', 'desc'].includes(query.sortOrder as string)) {
+    opts.sortOrder = query.sortOrder as 'asc' | 'desc';
+  }
+  if (query.genres && typeof query.genres === 'string') {
+    opts.genres = query.genres.split(',').map((s: string) => s.trim()).filter(Boolean);
+  }
+  if (query.platforms && typeof query.platforms === 'string') {
+    opts.platforms = query.platforms.split(',').map((s: string) => s.trim()).filter(Boolean);
+  }
+  if (query.ratingFilter && ['rated', 'unrated'].includes(query.ratingFilter as string)) {
+    opts.ratingFilter = query.ratingFilter as 'rated' | 'unrated';
+  }
+  return opts;
 }
 
 // ── GET /api/v1/libraries — List user's libraries ───────
@@ -67,12 +96,8 @@ router.post('/', validateBody(createSchema), async (req: Request, res: Response)
 router.get('/:slug', async (req: Request, res: Response) => {
   try {
     const { userId } = req as AuthenticatedRequest;
-    const page = Math.max(1, parseInt(req.query.page as string) || PAGINATION.DEFAULT_PAGE);
-    const pageSize = Math.min(
-      parseInt(req.query.pageSize as string) || PAGINATION.DEFAULT_PAGE_SIZE,
-      PAGINATION.MAX_PAGE_SIZE,
-    );
-    const result = await getLibraryBySlug(userId, req.params.slug, page, pageSize);
+    const opts = parseLibraryQuery(req.query as Record<string, unknown>);
+    const result = await getLibraryBySlug(userId, req.params.slug, opts);
     res.json({ success: true, data: result });
   } catch (error) {
     handleError(res, error);
@@ -115,6 +140,7 @@ const addItemSchema = z.object({
   gameId: z.string().min(1),
   notes: z.string().max(2000).optional(),
   userRating: z.number().min(0).max(5).optional(),
+  platformsPlayed: z.array(z.string().min(1).max(50)).max(20).optional(),
 });
 
 router.post('/:id/items', validateBody(addItemSchema), async (req: Request, res: Response) => {
@@ -123,6 +149,7 @@ router.post('/:id/items', validateBody(addItemSchema), async (req: Request, res:
     const item = await addGameToLibrary(userId, req.params.id, req.body.gameId, {
       notes: req.body.notes,
       userRating: req.body.userRating,
+      platformsPlayed: req.body.platformsPlayed,
     });
     res.status(201).json({ success: true, data: item });
   } catch (error) {
@@ -135,6 +162,7 @@ router.post('/:id/items', validateBody(addItemSchema), async (req: Request, res:
 const updateItemSchema = z.object({
   notes: z.string().max(2000).optional(),
   userRating: z.number().min(0).max(5).nullable().optional(),
+  platformsPlayed: z.array(z.string().min(1).max(50)).max(20).optional(),
 });
 
 router.patch('/items/:itemId', validateBody(updateItemSchema), async (req: Request, res: Response) => {

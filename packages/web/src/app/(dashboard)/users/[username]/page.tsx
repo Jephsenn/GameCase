@@ -115,6 +115,18 @@ function ActivityDescription({ item }: { item: ActivityItemData }) {
           ) : 'a new library'}
         </p>
       );
+    case 'steam_imported': {
+      const meta = item.metadata as { imported?: number; skipped?: number; notFound?: number } | null;
+      return (
+        <p className="text-sm text-neutral-300">
+          <span className="font-medium text-white">{userName}</span> synced{' '}
+          <span className="font-semibold text-blue-400">{meta?.imported ?? 0} games</span>{' '}from Steam
+          {(meta?.skipped ?? 0) > 0 && (
+            <span className="text-neutral-500"> · {meta!.skipped} already in library</span>
+          )}
+        </p>
+      );
+    }
     default:
       return <p className="text-sm text-neutral-400">Unknown activity</p>;
   }
@@ -420,6 +432,13 @@ export default function UserProfilePage() {
                       className="h-12 w-9 rounded object-cover"
                     />
                   </Link>
+                )}
+                {item.type === 'steam_imported' && (
+                  <div className="flex-shrink-0 h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                    <svg className="h-6 w-6 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658a3.387 3.387 0 0 1 1.912-.59c.064 0 .128.003.19.008l2.861-4.142V8.91a4.528 4.528 0 0 1 4.524-4.524c2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396a3.406 3.406 0 0 1-3.362-2.898L.453 14.83A11.99 11.99 0 0 0 11.979 24c6.627 0 12-5.373 12-12s-5.372-12-12-12z" />
+                    </svg>
+                  </div>
                 )}
               </div>
             ))}

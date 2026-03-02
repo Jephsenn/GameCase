@@ -15,6 +15,7 @@ const navLinks = [
   { href: '/recommendations', label: 'For You' },
   { href: '/feed', label: 'Feed' },
   { href: '/friends', label: 'Friends' },
+  { href: '/stats', label: 'Stats' },
 ];
 
 export function Navbar() {
@@ -71,9 +72,17 @@ export function Navbar() {
             className="flex items-center gap-2 text-sm text-neutral-400 hover:text-neutral-200 transition-colors hidden sm:flex"
             aria-label="View profile"
           >
-            <div className="h-7 w-7 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-[10px] font-bold text-white">
-              {(user?.displayName || user?.username || '').slice(0, 2).toUpperCase()}
-            </div>
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={user.displayName || user.username}
+                className="h-7 w-7 rounded-full object-cover"
+              />
+            ) : (
+              <div className="h-7 w-7 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-[10px] font-bold text-white">
+                {(user?.displayName || user?.username || '').slice(0, 2).toUpperCase()}
+              </div>
+            )}
             <span>{user?.displayName || user?.username}</span>
           </Link>
           <Button variant="ghost" size="sm" onClick={handleLogout} className="hidden sm:flex">

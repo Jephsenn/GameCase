@@ -31,7 +31,11 @@ interface AuthResult {
     displayName: string | null;
     avatarUrl: string | null;
     bio: string | null;
+    plan: string;
     onboardingDone: boolean;
+    steamId: string | null;
+    steamPlayerName: string | null;
+    steamAvatarUrl: string | null;
     createdAt: Date;
     updatedAt: Date;
   };
@@ -66,7 +70,11 @@ function sanitizeUser(user: {
   displayName: string | null;
   avatarUrl: string | null;
   bio: string | null;
+  plan: string;
   onboardingDone: boolean;
+  steamId?: string | null;
+  steamPlayerName?: string | null;
+  steamAvatarUrl?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }) {
@@ -77,7 +85,11 @@ function sanitizeUser(user: {
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
     bio: user.bio,
+    plan: user.plan,
     onboardingDone: user.onboardingDone,
+    steamId: user.steamId ?? null,
+    steamPlayerName: user.steamPlayerName ?? null,
+    steamAvatarUrl: user.steamAvatarUrl ?? null,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
+import fs from 'fs';
 import { config } from './config';
 import { logger } from './lib/logger';
 import prisma from './lib/prisma';
@@ -16,6 +18,9 @@ import libraryRoutes from './routes/library.routes';
 import recommendationRoutes from './routes/recommendation.routes';
 import friendRoutes from './routes/friend.routes';
 import activityRoutes from './routes/activity.routes';
+import billingRoutes from './routes/billing.routes';
+import { billingWebhookRouter } from './routes/billing.routes';
+import steamRoutes from './routes/steam.routes';
 
 const app = express();
 
@@ -34,6 +39,20 @@ app.use(
 // ── Compression ──────────────────────────────
 app.use(compression());
 
+// ── Static uploads ──────────────────────────
+const uploadsDir = path.join(__dirname, '..', 'uploads', 'avatars');
+fs.mkdirSync(uploadsDir, { recursive: true });
+// Must set Cross-Origin-Resource-Policy so the Next.js frontend (different port)
+// is allowed to display the images that helmet locks down by default.
+app.use(
+  '/uploads',
+  express.static(path.join(__dirname, '..', 'uploads'), {
+    setHeaders(res) {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    },
+  }),
+);
+
 // ── Rate limiting ────────────────────────────
 const limiter = rateLimit({
   windowMs: config.rateLimitWindowMs,
@@ -43,6 +62,9 @@ const limiter = rateLimit({
   message: { success: false, error: 'Too many requests, please try again later.' },
 });
 app.use(limiter);
+
+// ── Stripe webhook (needs raw body — BEFORE express.json) ──
+app.use('/api/v1/billing/webhook', billingWebhookRouter);
 
 // ── Parsing ──────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
@@ -108,6 +130,8 @@ app.use('/api/v1/libraries', libraryRoutes);
 app.use('/api/v1/recommendations', recommendationRoutes);
 app.use('/api/v1/friends', friendRoutes);
 app.use('/api/v1/activity', activityRoutes);
+app.use('/api/v1/billing', billingRoutes);
+app.use('/api/v1/steam', steamRoutes);
 
 // ── Admin: manual seed trigger ───────────────
 app.post('/api/v1/admin/seed', async (_req, res) => {
