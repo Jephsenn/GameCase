@@ -21,6 +21,13 @@ async function main() {
       logger.info('RAWG_API_KEY is configured');
     }
 
+    // Log Steam API key status
+    if (!config.steamApiKey) {
+      logger.error('STEAM_API_KEY is NOT set — Steam import and validation will fail');
+    } else {
+      logger.info(`STEAM_API_KEY is configured (starts with: ${config.steamApiKey.slice(0, 4)}...)`);
+    }
+
     // Seed reference data + initial games if DB is empty
     await runStartupSeed();
 
