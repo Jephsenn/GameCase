@@ -25,7 +25,9 @@ import steamRoutes from './routes/steam.routes';
 const app = express();
 
 // ── Security ─────────────────────────────────
-app.use(helmet());
+// crossOriginOpenerPolicy must be disabled (or set to unsafe-none) so that
+// Google OAuth's popup can postMessage back to the opener window.
+app.use(helmet({ crossOriginOpenerPolicy: false }));
 
 // Support comma-separated origins (e.g. "https://app.vercel.app,http://localhost:3000")
 const allowedOrigins = config.corsOrigin.split(',').map((o) => o.trim());
