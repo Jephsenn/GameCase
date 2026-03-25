@@ -16,7 +16,7 @@ import {
   LibraryError,
   type LibraryQueryOptions,
 } from '../services/library.service';
-import { PAGINATION } from '@gametracker/shared';
+import { PAGINATION } from '@gamecase/shared';
 
 const router = Router();
 

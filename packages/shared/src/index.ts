@@ -1,4 +1,4 @@
-// @gametracker/shared — barrel export
+// @gamecase/shared — barrel export
 // No browser-only or Node-only imports allowed in this package.
 
 export * from './types';

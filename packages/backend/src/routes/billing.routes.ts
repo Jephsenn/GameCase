@@ -133,6 +133,29 @@ router.post('/verify', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// ── GET /billing/price — Return formatted Pro plan price ──
+
+router.get('/price', async (_req: Request, res: Response) => {
+  try {
+    if (!config.stripeProPriceId) {
+      res.json({ success: true, data: { amount: null, currency: 'usd', formatted: null } });
+      return;
+    }
+    const price = await stripe.prices.retrieve(config.stripeProPriceId);
+    const amount = price.unit_amount ?? 0;
+    const currency = price.currency ?? 'usd';
+    // Format e.g. 499 cents → "$4.99"
+    const formatted = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency.toUpperCase(),
+    }).format(amount / 100);
+    res.json({ success: true, data: { amount, currency, formatted } });
+  } catch (error) {
+    logger.error({ err: error }, 'Billing price error');
+    res.status(500).json({ success: false, error: 'Failed to fetch price' });
+  }
+});
+
 // ── POST /billing/portal — Create Stripe Customer Portal session ──
 
 router.post('/portal', requireAuth, async (req: Request, res: Response) => {

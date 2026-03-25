@@ -1,5 +1,5 @@
 import prisma from '../lib/prisma';
-import { PAGINATION } from '@gametracker/shared';
+import { PAGINATION } from '@gamecase/shared';
 
 // ──────────────────────────────────────────────
 // Activity Service — social feed
@@ -43,6 +43,9 @@ const activityInclude = {
       id: true,
       name: true,
       slug: true,
+      visibility: true,
+      isDefault: true,
+      defaultType: true,
     },
   },
 } as const;
@@ -60,7 +63,7 @@ type RawActivity = Awaited<ReturnType<typeof prisma.activityFeedItem.findFirst>>
     platforms: { platform: { id: string; name: string; slug: string } }[];
     genres: { genre: { id: string; name: string; slug: string } }[];
   } | null;
-  library: { id: string; name: string; slug: string } | null;
+  library: { id: string; name: string; slug: string; visibility: string; isDefault: boolean; defaultType: string | null } | null;
 };
 
 function formatActivity(item: NonNullable<RawActivity>) {
@@ -87,7 +90,15 @@ function formatActivity(item: NonNullable<RawActivity>) {
           genres: item.game.genres.map((g) => g.genre),
         }
       : null,
-    library: item.library,
+    library: item.library && (item.library.isDefault || item.library.visibility === 'public')
+      ? {
+          id: item.library.id,
+          name: item.library.name,
+          slug: item.library.slug,
+          isDefault: item.library.isDefault,
+          defaultType: item.library.defaultType,
+        }
+      : null,
     metadata: item.metadata as Record<string, unknown> | null,
     createdAt: item.createdAt.toISOString(),
   };

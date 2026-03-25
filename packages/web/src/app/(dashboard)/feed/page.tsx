@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { PageTransition, FadeIn } from '@/components/ui/animations';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatRelativeTime } from '@gametracker/shared';
+import { formatRelativeTime } from '@gamecase/shared';
 
 function ActivityDescription({ item }: { item: ActivityItemData }) {
   const userName = item.user.displayName || item.user.username;

@@ -35,7 +35,7 @@ async function main() {
     startSyncJobs();
 
     app.listen(config.port, () => {
-      logger.info({ port: config.port, env: config.nodeEnv }, 'GameTracker API started');
+      logger.info({ port: config.port, env: config.nodeEnv }, 'GameCase API started');
     });
   } catch (error) {
     logger.fatal({ err: error }, 'Failed to start server');

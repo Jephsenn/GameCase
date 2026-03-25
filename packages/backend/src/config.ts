@@ -11,7 +11,7 @@ export const config = {
   isProduction: process.env.NODE_ENV === 'production',
 
   // Database
-  databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/gametracker',
+  databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/gamecase',
 
   // Redis
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',

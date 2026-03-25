@@ -50,7 +50,7 @@ export default function LoginPage() {
       <div className="space-y-2">
         <h2 className="text-2xl font-black tracking-tight">Welcome back</h2>
         <p className="text-sm text-neutral-400">
-          Sign in to your GameTracker account.
+          Sign in to your GameCase account.
         </p>
       </div>
 

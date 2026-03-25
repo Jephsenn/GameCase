@@ -1,16 +1,16 @@
 # ─────────────────────────────────────────────────
-# GameTracker — Docker Compose (local development)
+# GameCase — Docker Compose (local development)
 # ─────────────────────────────────────────────────
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: gametracker-postgres
+    container_name: gamecase-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: gametracker
+      POSTGRES_DB: gamecase
     ports:
       - '5432:5432'
     volumes:
@@ -23,7 +23,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: gametracker-redis
+    container_name: gamecase-redis
     restart: unless-stopped
     ports:
       - '6379:6379'

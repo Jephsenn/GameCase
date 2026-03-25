@@ -154,7 +154,7 @@ export default function Home() {
               G
             </div>
             <span className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-              Game<span className="text-violet-400">Tracker</span>
+              Game<span className="text-violet-400">Case</span>
             </span>
           </div>
         </FadeIn>
@@ -182,7 +182,7 @@ export default function Home() {
           <div className="flex flex-col gap-4 sm:flex-row">
             <Link
               href="/signup"
-              className="rounded-full bg-violet-600 px-10 py-3.5 text-lg font-semibold text-white transition-all hover:bg-violet-500 hover:shadow-[0_0_40px_rgba(139,92,246,0.45)] active:scale-[0.97]"
+              className="rounded-full bg-violet-600 px-10 py-3.5 text-lg font-semibold text-white transition-all hover:bg-violet-500 hover:shadow-[0_0_40px_rgba(139,92,246,0.45)] active:scale-[0.97] w-full"
             >
               Get Started
             </Link>

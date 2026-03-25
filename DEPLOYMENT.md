@@ -1,6 +1,6 @@
 # Deployment Guide
 
-GameTracker is deployed as two services:
+GameCase is deployed as two services:
 
 | Component | Platform | URL |
 |-----------|----------|-----|
@@ -13,7 +13,7 @@ GameTracker is deployed as two services:
 
 ## Prerequisites
 
-- GitHub repository with the GameTracker monorepo pushed
+- GitHub repository with the GameCase monorepo pushed
 - [Vercel account](https://vercel.com) (free tier works)
 - [Railway account](https://railway.app) (Hobby plan recommended — $5/mo)
 - A [RAWG API key](https://rawg.io/apidocs) (free)
@@ -26,7 +26,7 @@ GameTracker is deployed as two services:
 
 1. Go to [railway.app/new](https://railway.app/new)
 2. Click **"Deploy from GitHub Repo"**
-3. Select your GameTracker repository
+3. Select your GameCase repository
 4. Railway will detect the `railway.toml` and `Dockerfile.backend` automatically
 
 ### 1b. Add PostgreSQL
@@ -59,7 +59,7 @@ In the **backend service** → **Variables** tab, add:
 
 ### 1e. Deploy
 
-Railway will build the Docker image and start the service. Check the **Deployments** tab for logs. Once healthy, note your Railway public URL (e.g. `https://gametracker-backend-production.up.railway.app`).
+Railway will build the Docker image and start the service. Check the **Deployments** tab for logs. Once healthy, note your Railway public URL (e.g. `https://gamecase-backend-production.up.railway.app`).
 
 To generate a public URL: **Settings** → **Networking** → **Generate Domain**.
 
@@ -70,7 +70,7 @@ To generate a public URL: **Settings** → **Networking** → **Generate Domain*
 ### 2a. Import project
 
 1. Go to [vercel.com/new](https://vercel.com/new)
-2. Click **"Import Git Repository"** and select your GameTracker repo
+2. Click **"Import Git Repository"** and select your GameCase repo
 3. Vercel will detect the `vercel.json` and auto-configure the build
 
 ### 2b. Set environment variables
@@ -188,3 +188,70 @@ This starts: PostgreSQL, Redis, Backend API, Next.js Web, and Nginx reverse prox
 | Database connection errors | Check Railway Postgres plugin is linked and `DATABASE_URL` variable is populated |
 | Migrations failing | Run `railway logs` to see the migration output; ensure schema file exists |
 | Build failing on Vercel | Make sure the shared package builds first — `vercel.json` handles this |
+
+---
+
+## 6. Mobile App (EAS Build)
+
+### 6a. Create an Expo account
+
+1. Sign up at [expo.dev](https://expo.dev) (free)
+2. Install EAS CLI: `npm install -g eas-cli`
+3. Log in: `eas login`
+
+### 6b. Initialize EAS in the mobile package
+
+```bash
+cd packages/mobile
+npx eas init
+```
+
+This will:
+- Create an Expo project (if one doesn't exist)
+- Populate the `projectId` in `app.config.ts` → `extra.eas.projectId`
+- Create `eas.json` if it doesn't exist
+
+> **After running `eas init`**, update `app.config.ts`:
+> ```ts
+> eas: {
+>   projectId: 'YOUR-ACTUAL-UUID-HERE',  // from eas init output
+> }
+> ```
+> or set the environment variable: `EAS_PROJECT_ID=your-uuid`
+
+### 6c. Set mobile environment variables
+
+Create `packages/mobile/.env` (or use EAS secrets for production builds):
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `EXPO_PUBLIC_API_URL` | Yes | Backend API base URL (e.g. `https://your-api.railway.app/api/v1`) |
+| `EXPO_PUBLIC_GOOGLE_CLIENT_ID` | No | Google OAuth client ID (Expo/native) |
+| `EXPO_PUBLIC_GOOGLE_REDIRECT_URI` | No | Override Google OAuth proxy redirect URI (default: `https://auth.expo.io/@jjosephsen/gamecase`) |
+
+> **Note**: `EXPO_PUBLIC_*` variables are baked into the app bundle at build time. For production builds, set them as EAS environment variables in the Expo dashboard or via `eas secret:create`.
+
+### 6d. Build the app
+
+```bash
+cd packages/mobile
+
+# iOS simulator build (no Apple account needed)
+eas build --platform ios --profile preview
+
+# Android APK (no Google Play needed)
+eas build --platform android --profile preview
+
+# Production builds (requires Apple Developer / Google Play accounts)
+eas build --platform ios --profile production
+eas build --platform android --profile production
+```
+
+### 6e. Replace placeholder assets
+
+The `packages/mobile/assets/icon.png` and `packages/mobile/assets/splash.png` are solid `#0f172a` placeholders. **Before submitting to app stores**, replace them with proper branded artwork:
+
+- `icon.png` — 1024×1024 px, PNG, no transparency (iOS)
+- `splash.png` — 2048×2048 px, PNG (centered logo recommended)
+
+Re-generate: `node packages/mobile/scripts/gen-assets.js` produces new placeholders if needed.

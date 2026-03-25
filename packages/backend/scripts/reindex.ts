@@ -17,7 +17,7 @@ async function main() {
   const args = process.argv.slice(2);
   const flags = parseFlags(args);
 
-  console.log('🔄 GameTracker — Reindex Game Data');
+  console.log('🔄 GameCase — Reindex Game Data');
   console.log('──────────────────────────────────');
 
   const pages = flags.full ? 25 : parseInt(flags.pages || '5');

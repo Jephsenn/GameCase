@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────
-# GameTracker — Docker Compose (production)
+# GameCase — Docker Compose (production)
 # ─────────────────────────────────────────────────
 # Usage:
 #   docker compose -f docker-compose.prod.yml up --build -d
@@ -9,12 +9,12 @@ services:
   # ── PostgreSQL ──────────────────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: gametracker-postgres
+    container_name: gamecase-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-gametracker}
+      POSTGRES_DB: ${POSTGRES_DB:-gamecase}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -28,7 +28,7 @@ services:
   # ── Redis ───────────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: gametracker-redis
+    container_name: gamecase-redis
     restart: unless-stopped
     command: redis-server --requirepass ${REDIS_PASSWORD:-redis}
     volumes:
@@ -46,7 +46,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    container_name: gametracker-backend
+    container_name: gamecase-backend
     restart: unless-stopped
     depends_on:
       postgres:
@@ -56,7 +56,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gametracker}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gamecase}
       REDIS_URL: redis://:${REDIS_PASSWORD:-redis}@redis:6379
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET}
@@ -74,7 +74,7 @@ services:
       dockerfile: Dockerfile.web
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost/api}
-    container_name: gametracker-web
+    container_name: gamecase-web
     restart: unless-stopped
     depends_on:
       - backend
@@ -88,7 +88,7 @@ services:
   # ── Nginx reverse proxy ────────────────────
   nginx:
     image: nginx:alpine
-    container_name: gametracker-nginx
+    container_name: gamecase-nginx
     restart: unless-stopped
     depends_on:
       - backend

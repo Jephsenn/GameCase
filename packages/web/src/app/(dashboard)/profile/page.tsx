@@ -15,7 +15,7 @@ import { useToast } from '@/components/ui/toast';
 import { PageTransition, FadeIn } from '@/components/ui/animations';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SteamImport } from './steam-import';
-import { formatRelativeTime, formatDate } from '@gametracker/shared';
+import { formatRelativeTime, formatDate } from '@gamecase/shared';
 
 function ActivityDescription({ item }: { item: ActivityItemData }) {
   switch (item.type) {

@@ -1,4 +1,4 @@
-# 🎮 GameTracker
+# 🎮 GameCase
 
 A Goodreads-like platform for video games. Track your library, discover new games, and get personalized recommendations.
 
@@ -19,7 +19,7 @@ A Goodreads-like platform for video games. Track your library, discover new game
 ## Project Structure
 
 ```
-GameTracker/
+GameCase/
 ├── packages/
 │   ├── shared/          # Portable types, constants, validators, utils
 │   │   └── src/
@@ -69,8 +69,8 @@ GameTracker/
 ### 1. Clone & Install
 
 ```bash
-git clone <repo-url> GameTracker
-cd GameTracker
+git clone <repo-url> GameCase
+cd GameCase
 npm install
 ```
 

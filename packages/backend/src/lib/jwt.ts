@@ -1,6 +1,6 @@
 import jwt, { type SignOptions } from 'jsonwebtoken';
 import { config } from '../config';
-import type { TokenPayload } from '@gametracker/shared';
+import type { TokenPayload } from '@gamecase/shared';
 
 interface TokenPair {
   accessToken: string;

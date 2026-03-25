@@ -12,6 +12,7 @@ import {
   updateProfile,
   completeOnboarding,
   getAllGenres,
+  searchUsers,
 } from '../services/user.service';
 import { getPublicLibraryBySlug, LibraryError, type LibraryQueryOptions } from '../services/library.service';
 import { getUserStats } from '../services/stats.service';
@@ -164,6 +165,23 @@ router.post(
     }
   },
 );
+
+// ── GET /users/search — Search users by username ────
+
+router.get('/search', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const q = typeof req.query.q === 'string' ? req.query.q : '';
+    if (q.length < 2) {
+      res.json({ success: true, data: { users: [] } });
+      return;
+    }
+    const users = await searchUsers(q);
+    res.json({ success: true, data: { users } });
+  } catch (error) {
+    console.error('Search users error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
 
 // ── GET /users/:username ────────────────────────────
 

@@ -1,7 +1,7 @@
 import prisma from '../lib/prisma';
 import { cacheDel, cacheGet, cacheSet } from '../lib/redis';
-import { CACHE_TTL, PAGINATION, LIBRARY, PLAN_LIMITS } from '@gametracker/shared';
-import { slugify } from '@gametracker/shared';
+import { CACHE_TTL, PAGINATION, LIBRARY, PLAN_LIMITS } from '@gamecase/shared';
+import { slugify } from '@gamecase/shared';
 import { generateMoreRecommendations } from './recommendation.service';
 import { AppError } from './auth.service';
 
@@ -639,6 +639,7 @@ export async function updateLibraryItem(
           gameId: item.gameId,
           libraryId: item.libraryId,
           libraryItemId: item.id,
+          metadata: input.notes?.trim() ? { notes: input.notes.trim() } : {},
         },
       });
     }

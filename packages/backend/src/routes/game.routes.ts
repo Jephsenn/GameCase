@@ -12,7 +12,7 @@ import {
   ingestFullGame,
 } from '../services/game.service';
 import { cacheInvalidatePattern } from '../lib/redis';
-import { PAGINATION, SEARCH } from '@gametracker/shared';
+import { PAGINATION, SEARCH } from '@gamecase/shared';
 
 const router = Router();
 

@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────
-# GameTracker Backend — Production Dockerfile
+# GameCase Backend — Production Dockerfile
 # ─────────────────────────────────────────────────
 
 FROM node:20-alpine AS base
@@ -42,8 +42,8 @@ RUN sed -i 's/\r$//' ./start.sh && chmod +x ./start.sh
 # Copy root node_modules (npm workspaces hoists all deps here)
 COPY --from=builder /app/node_modules ./node_modules
 # Overlay shared package dist (symlinks don't survive Docker COPY)
-COPY --from=builder /app/packages/shared/dist ./node_modules/@gametracker/shared/dist
-COPY --from=builder /app/packages/shared/package.json ./node_modules/@gametracker/shared/
+COPY --from=builder /app/packages/shared/dist ./node_modules/@gamecase/shared/dist
+COPY --from=builder /app/packages/shared/package.json ./node_modules/@gamecase/shared/
 
 # Create uploads directory for avatar uploads
 RUN mkdir -p /app/uploads/avatars

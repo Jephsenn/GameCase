@@ -1,7 +1,10 @@
+import crypto from 'crypto';
 import prisma from '../lib/prisma';
 import { hashPassword, comparePassword } from '../lib/password';
 import { generateTokens, verifyRefreshToken } from '../lib/jwt';
-import { DEFAULT_LIBRARIES } from '@gametracker/shared';
+import { DEFAULT_LIBRARIES } from '@gamecase/shared';
+import { getRedis } from '../lib/redis';
+import { logger } from '../lib/logger';
 
 interface SignupInput {
   email: string;
@@ -16,7 +19,7 @@ interface LoginInput {
 }
 
 interface OAuthInput {
-  email: string;
+  email?: string; // Apple only includes email on first sign-in; may be absent on repeat logins
   provider: 'google' | 'apple';
   providerId: string;
   displayName?: string;
@@ -175,12 +178,13 @@ export async function login(input: LoginInput): Promise<AuthResult> {
 export async function oauthLogin(input: OAuthInput): Promise<AuthResult> {
   const { email, provider, providerId, displayName, avatarUrl } = input;
 
-  // Try to find existing OAuth user
+  // Try to find existing OAuth user by providerId first, then fall back to email match.
+  // Apple only includes email on the first sign-in, so we cannot always rely on it.
   let user = await prisma.user.findFirst({
     where: {
       OR: [
         { oauthProvider: provider, oauthProviderId: providerId },
-        { email: email.toLowerCase() },
+        ...(email ? [{ email: email.toLowerCase() }] : []),
       ],
     },
   });
@@ -194,6 +198,11 @@ export async function oauthLogin(input: OAuthInput): Promise<AuthResult> {
       });
     }
   } else {
+    // New user — email is required to create an account
+    if (!email) {
+      throw new AppError('Email permission is required on first sign-in with Apple', 400);
+    }
+
     // Generate unique username from email
     const baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
     let username = baseUsername;
@@ -268,6 +277,50 @@ export async function logout(userId: string): Promise<void> {
     where: { id: userId },
     data: { refreshToken: null },
   });
+}
+
+// ── Forgot Password ───────────────────────────────────
+
+const PWD_RESET_PREFIX = 'pwd_reset:';
+const PWD_RESET_TTL_S = 3600; // 1 hour
+
+/**
+ * Generates a password reset token and stores it in Redis.
+ * In production this would trigger an email. In development the token is
+ * logged so it can be used directly for testing.
+ */
+export async function forgotPassword(email: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { email: email.toLowerCase() },
+    select: { id: true, passwordHash: true },
+  });
+
+  // Always succeed to avoid leaking account existence
+  if (!user || !user.passwordHash) return;
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const redis = getRedis();
+  await redis.setex(`${PWD_RESET_PREFIX}${token}`, PWD_RESET_TTL_S, user.id);
+
+  // TODO: Replace with real email in production. For now, log the token.
+  logger.info({ token, email: email.toLowerCase() }, '[forgot-password] Reset token generated — send this to the user via email');
+}
+
+/**
+ * Validates a password reset token and updates the user's password.
+ * Deletes the token after use so it cannot be reused.
+ */
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  const redis = getRedis();
+  const userId = await redis.get(`${PWD_RESET_PREFIX}${token}`);
+
+  if (!userId) {
+    throw new AppError('Invalid or expired reset token', 400);
+  }
+
+  const hash = await hashPassword(newPassword);
+  await prisma.user.update({ where: { id: userId }, data: { passwordHash: hash } });
+  await redis.del(`${PWD_RESET_PREFIX}${token}`);
 }
 
 // ── Error class ───────────────────────────────────────

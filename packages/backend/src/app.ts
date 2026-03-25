@@ -53,15 +53,17 @@ app.use(
   }),
 );
 
-// ── Rate limiting ────────────────────────────
-const limiter = rateLimit({
-  windowMs: config.rateLimitWindowMs,
-  max: config.rateLimitMax,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, error: 'Too many requests, please try again later.' },
-});
-app.use(limiter);
+// ── Rate limiting (production only) ─────────
+if (config.nodeEnv === 'production') {
+  const limiter = rateLimit({
+    windowMs: config.rateLimitWindowMs,
+    max: config.rateLimitMax,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Too many requests, please try again later.' },
+  });
+  app.use(limiter);
+}
 
 // ── Stripe webhook (needs raw body — BEFORE express.json) ──
 app.use('/api/v1/billing/webhook', billingWebhookRouter);
@@ -116,7 +118,7 @@ app.get('/api/v1', (_req, res) => {
   res.json({
     success: true,
     data: {
-      name: 'GameTracker API',
+      name: 'GameCase API',
       version: '1.0.0',
       environment: config.nodeEnv,
     },

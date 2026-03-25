@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth, type AuthenticatedRequest } from '../middleware/auth';
 import { getMyFeed, getUserActivity, ActivityError } from '../services/activity.service';
-import { PAGINATION } from '@gametracker/shared';
+import { PAGINATION } from '@gamecase/shared';
 
 const router = Router();
 

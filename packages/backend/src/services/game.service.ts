@@ -10,8 +10,8 @@ import {
 } from '../lib/rawg';
 import { cacheGet, cacheSet, cacheInvalidatePattern } from '../lib/redis';
 import { logger } from '../lib/logger';
-import { CACHE_TTL, PAGINATION, SEARCH } from '@gametracker/shared';
-import type { GameSearchParams } from '@gametracker/shared';
+import { CACHE_TTL, PAGINATION, SEARCH } from '@gamecase/shared';
+import type { GameSearchParams } from '@gamecase/shared';
 
 // ──────────────────────────────────────────────
 // Game Data Service — ingestion, normalization, search

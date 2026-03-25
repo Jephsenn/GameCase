@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GameTracker — Your Game Library",
+  title: "GameCase — Your Game Library",
   description:
     "Track, organize, and discover video games. Build your library, get personalized recommendations, and share your gaming journey.",
 };

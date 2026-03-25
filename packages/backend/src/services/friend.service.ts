@@ -1,6 +1,6 @@
 import prisma from '../lib/prisma';
-import type { FriendshipStatus } from '@gametracker/shared';
-import { PLAN_LIMITS } from '@gametracker/shared';
+import type { FriendshipStatus } from '@gamecase/shared';
+import { PLAN_LIMITS } from '@gamecase/shared';
 import { AppError } from './auth.service';
 
 // ──────────────────────────────────────────────
@@ -278,5 +278,6 @@ export async function getFriendshipStatus(userId: string, targetUserId: string) 
 
   if (!friendship) return null;
 
-  return formatFriendship(friendship);
+  const direction: 'sent' | 'received' = friendship.requesterId === userId ? 'sent' : 'received';
+  return { ...formatFriendship(friendship), direction };
 }

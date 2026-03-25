@@ -1,6 +1,6 @@
 import prisma from '../lib/prisma';
 import { cacheGet, cacheSet, cacheDel } from '../lib/redis';
-import { CACHE_TTL, PAGINATION } from '@gametracker/shared';
+import { CACHE_TTL, PAGINATION } from '@gamecase/shared';
 import { searchRawgGames, type RawgGameListItem } from '../lib/rawg';
 import { ingestRawgGame } from './game.service';
 import { logger } from '../lib/logger';

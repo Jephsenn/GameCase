@@ -81,7 +81,7 @@ async function rawgFetch<T>(path: string, params: Record<string, string | number
   const url = `${config.rawgBaseUrl}${path}${buildQs({ ...params, key: apiKey })}`;
 
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'GameTracker/1.0' },
+    headers: { 'User-Agent': 'GameCase/1.0' },
   });
 
   if (!res.ok) {

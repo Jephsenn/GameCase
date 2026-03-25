@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────
-# GameTracker — CI Pipeline
+# GameCase — CI Pipeline
 # ─────────────────────────────────────────────────
 name: CI
 
@@ -71,6 +71,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build backend image
-        run: docker build -f Dockerfile.backend -t gametracker-backend:ci .
+        run: docker build -f Dockerfile.backend -t gamecase-backend:ci .
       - name: Build web image
-        run: docker build -f Dockerfile.web -t gametracker-web:ci --build-arg NEXT_PUBLIC_API_URL=http://localhost/api .
+        run: docker build -f Dockerfile.web -t gamecase-web:ci --build-arg NEXT_PUBLIC_API_URL=http://localhost/api .

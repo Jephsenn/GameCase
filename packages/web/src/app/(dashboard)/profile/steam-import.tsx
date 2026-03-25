@@ -569,7 +569,7 @@ export function SteamImport() {
           </div>
           <div className="flex-1">
             <h3 className="text-lg font-bold text-white">Steam Library Import</h3>
-            <p className="text-sm text-neutral-400">Import your Steam games into GameTracker</p>
+            <p className="text-sm text-neutral-400">Import your Steam games into GameCase</p>
           </div>
           {!isPro && (
             <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/15 px-2.5 py-1 text-xs font-semibold text-violet-400">

@@ -41,6 +41,33 @@ export async function getProfile(userId: string) {
   };
 }
 
+// ── Search Users ─────────────────────────────────────
+
+export async function searchUsers(query: string) {
+  const q = query.toLowerCase().trim();
+  if (q.length < 2) return [];
+
+  const users = await prisma.user.findMany({
+    where: {
+      OR: [
+        { username: { contains: q } },
+        { displayName: { contains: q } },
+      ],
+    },
+    select: {
+      id: true,
+      username: true,
+      displayName: true,
+      avatarUrl: true,
+      bio: true,
+    },
+    take: 20,
+    orderBy: { username: 'asc' },
+  });
+
+  return users;
+}
+
 // ── Get Public Profile ────────────────────────────────
 
 export async function getPublicProfile(username: string) {

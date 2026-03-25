@@ -16,7 +16,7 @@ describe('GET /api/v1', () => {
     const res = await request(app).get('/api/v1');
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.data).toHaveProperty('name', 'GameTracker API');
+    expect(res.body.data).toHaveProperty('name', 'GameCase API');
     expect(res.body.data).toHaveProperty('version', '1.0.0');
   });
 });

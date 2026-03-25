@@ -17,7 +17,7 @@ import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import { PageTransition, FadeIn, StaggerContainer, StaggerItem } from '@/components/ui/animations';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatRelativeTime, formatDate } from '@gametracker/shared';
+import { formatRelativeTime, formatDate } from '@gamecase/shared';
 
 interface PublicProfile {
   id: string;
