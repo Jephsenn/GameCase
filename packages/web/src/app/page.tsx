@@ -51,16 +51,6 @@ function CoverTile({ src }: { src: string }) {
 
   return (
     <div className="relative aspect-[3/4] w-full flex-shrink-0 overflow-hidden rounded-lg bg-neutral-800">
-      {!failed && (
-        <Image
-          src={src}
-          alt=""
-          fill
-          sizes="(min-width:640px) 15vw, 33vw"
-          className="object-cover"
-          onError={handleError}
-        />
-      )}
       {/* Gradient fallback always behind the image */}
       <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-neutral-900" />
       {!failed && (
@@ -68,6 +58,7 @@ function CoverTile({ src }: { src: string }) {
           src={src}
           alt=""
           fill
+          unoptimized
           sizes="(min-width:640px) 15vw, 33vw"
           className="relative z-[1] object-cover"
           onError={handleError}

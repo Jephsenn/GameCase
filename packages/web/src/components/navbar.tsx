@@ -39,7 +39,7 @@ export function Navbar() {
               G
             </div>
             <span className="text-lg font-semibold tracking-tight">
-              Game<span className="text-violet-400">Tracker</span>
+              Game<span className="text-violet-400">Case</span>
             </span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">

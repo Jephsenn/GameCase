@@ -30,7 +30,7 @@ export default function AuthLayout({
               G
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-white">
-              Game<span className="text-violet-400">Tracker</span>
+              Game<span className="text-violet-400">Case</span>
             </h1>
           </div>
           <p className="text-lg leading-relaxed text-neutral-300">
@@ -83,7 +83,7 @@ export default function AuthLayout({
               G
             </div>
             <h1 className="text-2xl font-bold tracking-tight">
-              Game<span className="text-violet-400">Tracker</span>
+              Game<span className="text-violet-400">Case</span>
             </h1>
           </div>
           {children}
